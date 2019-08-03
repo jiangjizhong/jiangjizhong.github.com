@@ -989,118 +989,6 @@ iptables -t mangle -A POSTROUTING -m owner --gid-owner $normal_id -j CLASSIFY --
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2013/02/13/iptables-on-opensuse/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Jiang Jizhong">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="姜太公的记事本">
-    </span>
-      <header class="post-header">
-
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2013/02/13/iptables-on-opensuse/" class="post-title-link" itemprop="url">修改openSUSE的iptables规则</a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-
-              
-                
-              
-
-              <time title="Created: 2013-02-13 00:00:00" itemprop="dateCreated datePublished" datetime="2013-02-13T00:00:00+08:00">2013-02-13</time>
-            </span>
-          
-            
-
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">Edited on</span>
-                
-                <time title="Modified: 2019-08-03 17:05:11" itemprop="dateModified" datetime="2019-08-03T17:05:11+08:00">2019-08-03</time>
-              </span>
-            
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Network/" itemprop="url" rel="index"><span itemprop="name">Network</span></a></span>
-
-                
-                
-              
-            </span>
-          
-
-          <br>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          
-            <p>openSUSE安装后就自动设置了一堆的iptables规则，默认情况下，端口22没有开放出来，总不能每次都手工添加一条规则吧。下面说说怎么添加新的规则。</p>
-<p>打开/etc/sysconfig/SuSEfirewall2这个文件，这是一个配置文件，搜索<code>FW_CUSTOMRULES</code>，你看到的应该是<code>FW_CUSTOMRULES=&quot;&quot;</code>，没错了，把它改成<code>FW_CUSTOMRULES=&quot;/etc/sysconfig/scripts/SuSEfirewall2-custom&quot;</code>，意思是用户自定义的配置放在<code>/etc/sysconfig/scripts/SuSEfirewall2-custom</code>这个文件里。</p>
-<p><code>/etc/sysconfig/scripts/SuSEfirewall2-custom</code>这个文件其实是系统自带的，打开这个文件会看到里面定义了三个函数，不过都是空函数。对于要打开22端口这样的需求，我们修改<code>fw_custom_after_chain_creation</code>函数，在里面加一行 </p>
-<pre><code>iptables -A input_ext -p tcp --dport 22 -j ACCEPT</code></pre><p>保存后别忘了执行 <code>sudo /sbin/SuSEfirewall2</code>让新规则生效。</p>
-
-          
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-    
-      
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2013/02/13/Cgroups/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1219,6 +1107,118 @@ echo 3723 &gt; bar/cpu.shares </code></pre><p>立刻，cpu使用率改变了。<
 <li>子系统（subsystem），这个最重要了，一个子系统就是一个资源管理器。比如cpu子系统、内存子系统等等。全部的子系统包括blkio, cpu, cpuacct, cpuset, devices, freezer, memory, net_cls, ns等</li>
 </ul>
 <h2 id="持久化cgroups"><a href="#持久化cgroups" class="headerlink" title="持久化cgroups"></a>持久化cgroups</h2><p>上面例子中的cgroups配置，重启后就消失了，自然不是实用主义做法。如果想配置永久生效，要使用cgconfig服务，把配置写到/etc/cgcfongi.conf文件中。这里就不多做介绍了，毕竟本文也只是个“简介​​​”而已。</p>
+
+          
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+    
+      
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2013/02/13/iptables-on-opensuse/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                
+                <a href="/2013/02/13/iptables-on-opensuse/" class="post-title-link" itemprop="url">修改openSUSE的iptables规则</a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2013-02-13 00:00:00" itemprop="dateCreated datePublished" datetime="2013-02-13T00:00:00+08:00">2013-02-13</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:05:11" itemprop="dateModified" datetime="2019-08-03T17:05:11+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Network/" itemprop="url" rel="index"><span itemprop="name">Network</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+            <p>openSUSE安装后就自动设置了一堆的iptables规则，默认情况下，端口22没有开放出来，总不能每次都手工添加一条规则吧。下面说说怎么添加新的规则。</p>
+<p>打开/etc/sysconfig/SuSEfirewall2这个文件，这是一个配置文件，搜索<code>FW_CUSTOMRULES</code>，你看到的应该是<code>FW_CUSTOMRULES=&quot;&quot;</code>，没错了，把它改成<code>FW_CUSTOMRULES=&quot;/etc/sysconfig/scripts/SuSEfirewall2-custom&quot;</code>，意思是用户自定义的配置放在<code>/etc/sysconfig/scripts/SuSEfirewall2-custom</code>这个文件里。</p>
+<p><code>/etc/sysconfig/scripts/SuSEfirewall2-custom</code>这个文件其实是系统自带的，打开这个文件会看到里面定义了三个函数，不过都是空函数。对于要打开22端口这样的需求，我们修改<code>fw_custom_after_chain_creation</code>函数，在里面加一行 </p>
+<pre><code>iptables -A input_ext -p tcp --dport 22 -j ACCEPT</code></pre><p>保存后别忘了执行 <code>sudo /sbin/SuSEfirewall2</code>让新规则生效。</p>
 
           
         
@@ -1607,41 +1607,6 @@ TIME_WAIT       0   0   0   0   0   0   0   10  10  10  10  10</code></pre><p>�
       </div>
     
   </nav>
-  <div class="links-of-author motion-element">
-      <span class="links-of-author-item">
-      
-      
-        
-      
-      
-        
-      
-        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
-      </span>
-    
-      <span class="links-of-author-item">
-      
-      
-        
-      
-      
-        
-      
-        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
-      </span>
-    
-      <span class="links-of-author-item">
-      
-      
-        
-      
-      
-        
-      
-        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
-      </span>
-    
-  </div>
 
 
 
@@ -1746,6 +1711,8 @@ TIME_WAIT       0   0   0   0   0   0   0   10  10  10  10  10</code></pre><p>�
 
 
 
+
+    
 
 
 </body>

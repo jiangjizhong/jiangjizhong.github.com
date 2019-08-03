@@ -302,6 +302,9 @@
 
           </div>
           
+    
+    <div class="comments" id="gitalk-container"></div>
+  
 
 
         </div>
@@ -406,41 +409,6 @@
       </div>
     
   </nav>
-  <div class="links-of-author motion-element">
-      <span class="links-of-author-item">
-      
-      
-        
-      
-      
-        
-      
-        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
-      </span>
-    
-      <span class="links-of-author-item">
-      
-      
-        
-      
-      
-        
-      
-        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
-      </span>
-    
-      <span class="links-of-author-item">
-      
-      
-        
-      
-      
-        
-      
-        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
-      </span>
-    
-  </div>
 
 
 
@@ -550,6 +518,26 @@
 
 
 
+
+    
+<script src="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+<script src="//cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js"></script>
+
+<script>
+  var gitalk = new Gitalk({
+    clientID: '0e100dd4c8c34affeb46',
+    clientSecret: '21e6e8ecc087221af9fbe03f02210093a80d5679',
+    repo: 'https://github.com/jzwlqx/jzwlqx.github.com',
+    owner: 'jzwlqx',
+    admin: ['jzwlqx'],
+    id: md5(location.pathname),
+      language: window.navigator.language || window.navigator.userLanguage,
+    
+    distractionFreeMode: 'true'
+  });
+  gitalk.render('gitalk-container');
+</script>
 
 
 </body>
