@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html class="theme-next gemini use-motion" lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="generator" content="Hexo 3.9.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    search: {
+      root: '/',
+      path: ''
+    },
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    }
+  };
+</script>
+
+  <meta name="description" content="cgroups(Control Group)是Linux内核的功能，简单的说，它对进程分组，然后以组为单位进行资源调度和分配，另外还能记录组内进程使用的资源数量（内存、CPU等）。 什么时候要用cgroups如果一台机器是给多个人共享，对有些用户，你希望多分配一些资源，对另外一些用户，少分配一些资源，这时候就可以用cgroups。如果你想记录某个用户或者进程一共使用了多少资源，也可以使用cgrou">
+<meta name="keywords" content="cgroups">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cgroups简介">
+<meta property="og:url" content="http://oditszapc.com/2013/02/13/Cgroups/index.html">
+<meta property="og:site_name" content="姜太公的记事本">
+<meta property="og:description" content="cgroups(Control Group)是Linux内核的功能，简单的说，它对进程分组，然后以组为单位进行资源调度和分配，另外还能记录组内进程使用的资源数量（内存、CPU等）。 什么时候要用cgroups如果一台机器是给多个人共享，对有些用户，你希望多分配一些资源，对另外一些用户，少分配一些资源，这时候就可以用cgroups。如果你想记录某个用户或者进程一共使用了多少资源，也可以使用cgrou">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-08-03T09:05:00.858Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="cgroups简介">
+<meta name="twitter:description" content="cgroups(Control Group)是Linux内核的功能，简单的说，它对进程分组，然后以组为单位进行资源调度和分配，另外还能记录组内进程使用的资源数量（内存、CPU等）。 什么时候要用cgroups如果一台机器是给多个人共享，对有些用户，你希望多分配一些资源，对另外一些用户，少分配一些资源，这时候就可以用cgroups。如果你想记录某个用户或者进程一共使用了多少资源，也可以使用cgrou">
+  <link rel="canonical" href="http://oditszapc.com/2013/02/13/Cgroups/">
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>cgroups简介 | 姜太公的记事本</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">姜太公的记事本</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+    <ul id="menu" class="menu">
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Categories</a>
+
+  </li>
+    </ul>
+</nav>
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2013/02/13/Cgroups/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">cgroups简介
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2013-02-13 00:00:00" itemprop="dateCreated datePublished" datetime="2013-02-13T00:00:00+08:00">2013-02-13</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:05:00" itemprop="dateModified" datetime="2019-08-03T17:05:00+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>cgroups(Control Group)是Linux内核的功能，简单的说，它对进程分组，然后以组为单位进行资源调度和分配，另外还能记录组内进程使用的资源数量（内存、CPU等）。</p>
+<h2 id="什么时候要用cgroups"><a href="#什么时候要用cgroups" class="headerlink" title="什么时候要用cgroups"></a>什么时候要用cgroups</h2><p>如果一台机器是给多个人共享，对有些用户，你希望多分配一些资源，对另外一些用户，少分配一些资源，这时候就可以用cgroups。如果你想记录某个用户或者进程一共使用了多少资源，也可以使用cgroups。</p>
+<h2 id="直观印象"><a href="#直观印象" class="headerlink" title="直观印象"></a>直观印象</h2><p>下面的例子中，创建两个cgroup foo和bar，给每个组分配不同的cpu优先级。</p>
+<p>所有和cgroups的交互都是通过虚拟文件系统完成的，所以我们要挂载cgroup文件系统，像下面的例子这样。</p>
+<pre><code>mount -t cgroup -o cpu cgroups /mnt/cgroup # 挂载，-o参数表示加载哪些子系统（参加后面的子系统解释）</code></pre><p>如果执行成功，我们会发现/mnt/cgroup目录下多了几个文件</p>
+<pre><code>-rw-r--r-- 1 root root 0 Feb 13 04:19 cpu.rt_period_us
+-rw-r--r-- 1 root root 0 Feb 13 04:19 cpu.rt_runtime_us
+-rw-r--r-- 1 root root 0 Feb 13 04:19 cpu.shares
+-rw-r--r-- 1 root root 0 Feb 13 04:19 notify_on_release
+-rw-r--r-- 1 root root 0 Feb 13 04:19 release_agent
+-rw-r--r-- 1 root root 0 Feb 13 04:19 tasks</code></pre><p>继续</p>
+<pre><code>mkdir /mnt/cgroup/foo
+mkdir /mnt/cgroup/bar # 创建了两个cgroup foo和bar
+
+# 设置每个cgroup的参数
+echo 100 &gt; /mnt/cgroup/foo/cpu.shares
+echo 200 &gt; /mnt/cgroup/bar/cpu.shares</code></pre><p>为了测试，我写了下面一段简单的python代码，保存为loop.py</p>
+<pre><code>#!/usr/bin/env python
+
+while True:
+    pass</code></pre><p>然后在两个terminal中分别运行loop.py，两个进程分别占用了大约49%的cpu。此时，它们都不在foot和bar cgroup中。</p>
+<pre><code>PID  %CPU COMMAND
+3722 49.9 python
+3723 49.9 python</code></pre><p>下面，把进程放入cgroup，就是简单的pid放入cgroup的task文件中。</p>
+<pre><code>echo 3722 &gt; foo/cpu.shares
+echo 3723 &gt; bar/cpu.shares </code></pre><p>立刻，cpu使用率改变了。</p>
+<pre><code>PID  %CPU COMMAND
+3722 65.3 python
+3723 32.1 python</code></pre><p>看到了吧，使用cgroup就是这么简单：先挂载，再分组，设置好参数，最后把进程扔到对应的组里就行了。</p>
+<p><strong>另外，子进程会自动进入父进程的cgroup中</strong></p>
+<h2 id="cgroup的一些概念和名词"><a href="#cgroup的一些概念和名词" class="headerlink" title="cgroup的一些概念和名词"></a>cgroup的一些概念和名词</h2><ul>
+<li>任务（task ），就是系统的一个进程。</li>
+<li>控制组(control cgroup)，划分出来的一组task集合，包括它们的设置。比如上面的foo，bar都是控制组。</li>
+<li>层级(hierarchy) 控制组是有层次的，比如foo下面还可以建新的控制组，新建的控制组自动继承foo的所有配置。</li>
+<li>子系统（subsystem），这个最重要了，一个子系统就是一个资源管理器。比如cpu子系统、内存子系统等等。全部的子系统包括blkio, cpu, cpuacct, cpuset, devices, freezer, memory, net_cls, ns等</li>
+</ul>
+<h2 id="持久化cgroups"><a href="#持久化cgroups" class="headerlink" title="持久化cgroups"></a>持久化cgroups</h2><p>上面例子中的cgroups配置，重启后就消失了，自然不是实用主义做法。如果想配置永久生效，要使用cgconfig服务，把配置写到/etc/cgcfongi.conf文件中。这里就不多做介绍了，毕竟本文也只是个“简介​​​”而已。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+        
+        <div class="post-tags">
+            <a href="/tags/Linux/" rel="tag"># Linux</a>
+          
+            <a href="/tags/Resource/" rel="tag"># Resource</a>
+          
+        </div>
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+              <a href="/2013/02/03/simple-method-to-test-bandwidth-between-2-machine/" rel="next" title="测量两台机器间带宽的简单方法">
+                <i class="fa fa-chevron-left"></i> 测量两台机器间带宽的简单方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+              <a href="/2013/02/13/iptables-on-opensuse/" rel="prev" title="修改openSUSE的iptables规则">
+                修改openSUSE的iptables规则 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jiang Jizhong</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
+      </span>
+    
+  </div>
+
+
+
+        </div>
+      </div>
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么时候要用cgroups"><span class="nav-number">1.</span> <span class="nav-text">什么时候要用cgroups</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#直观印象"><span class="nav-number">2.</span> <span class="nav-text">直观印象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cgroup的一些概念和名词"><span class="nav-number">3.</span> <span class="nav-text">cgroup的一些概念和名词</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#持久化cgroups"><span class="nav-number">4.</span> <span class="nav-text">持久化cgroups</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jiang Jizhong</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.3.0</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
+    
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  <script src="/js/utils.js?v=7.3.0"></script>
+  <script src="/js/motion.js?v=7.3.0"></script>
+
+  
+  <script src="/js/affix.js?v=7.3.0"></script>
+  <script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.3.0"></script>
+<script src="/js/post-details.js?v=7.3.0"></script>
+
+
+
+  <script src="/js/next-boot.js?v=7.3.0"></script>
+
+  
+
+  
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

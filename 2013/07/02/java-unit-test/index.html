@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html class="theme-next gemini use-motion" lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="generator" content="Hexo 3.9.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    search: {
+      root: '/',
+      path: ''
+    },
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    }
+  };
+</script>
+
+  <meta name="description" content="在公司里，关于单元测试的话题，每两个月就要来一次小的，每年就要来一次大的，虽然频率比月经低，但是讨厌的程度丝毫不亚于后者（虽然我是男的）。 一般的节奏是这样的：过程改进部门（忘了那个神奇的部门叫什么名字了）新来的一个家伙，所谓新官上任三把火，就算是为了绩效考核也得做点什么吧，最简单并且能出成绩的当然是搞单元测试，因为每个项目每个产品的单元测试都烂的一塌糊涂或者根本没有单元测试。于是这位很快的给出了">
+<meta name="keywords" content="单元测试 unittest">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于单元测试">
+<meta property="og:url" content="http://oditszapc.com/2013/07/02/java-unit-test/index.html">
+<meta property="og:site_name" content="姜太公的记事本">
+<meta property="og:description" content="在公司里，关于单元测试的话题，每两个月就要来一次小的，每年就要来一次大的，虽然频率比月经低，但是讨厌的程度丝毫不亚于后者（虽然我是男的）。 一般的节奏是这样的：过程改进部门（忘了那个神奇的部门叫什么名字了）新来的一个家伙，所谓新官上任三把火，就算是为了绩效考核也得做点什么吧，最简单并且能出成绩的当然是搞单元测试，因为每个项目每个产品的单元测试都烂的一塌糊涂或者根本没有单元测试。于是这位很快的给出了">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-08-03T09:06:41.298Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="关于单元测试">
+<meta name="twitter:description" content="在公司里，关于单元测试的话题，每两个月就要来一次小的，每年就要来一次大的，虽然频率比月经低，但是讨厌的程度丝毫不亚于后者（虽然我是男的）。 一般的节奏是这样的：过程改进部门（忘了那个神奇的部门叫什么名字了）新来的一个家伙，所谓新官上任三把火，就算是为了绩效考核也得做点什么吧，最简单并且能出成绩的当然是搞单元测试，因为每个项目每个产品的单元测试都烂的一塌糊涂或者根本没有单元测试。于是这位很快的给出了">
+  <link rel="canonical" href="http://oditszapc.com/2013/07/02/java-unit-test/">
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>关于单元测试 | 姜太公的记事本</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">姜太公的记事本</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+    <ul id="menu" class="menu">
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Categories</a>
+
+  </li>
+    </ul>
+</nav>
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2013/07/02/java-unit-test/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">关于单元测试
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2013-07-02 00:00:00" itemprop="dateCreated datePublished" datetime="2013-07-02T00:00:00+08:00">2013-07-02</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:06:41" itemprop="dateModified" datetime="2019-08-03T17:06:41+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/development/" itemprop="url" rel="index"><span itemprop="name">软件开发</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在公司里，关于单元测试的话题，每两个月就要来一次小的，每年就要来一次大的，虽然频率比月经低，但是讨厌的程度丝毫不亚于后者（虽然我是男的）。</p>
+<p>一般的节奏是这样的：过程改进部门（忘了那个神奇的部门叫什么名字了）新来的一个家伙，所谓新官上任三把火，就算是为了绩效考核也得做点什么吧，最简单并且能出成绩的当然是搞单元测试，因为每个项目每个产品的单元测试都烂的一塌糊涂或者根本没有单元测试。于是这位很快的给出了单元测试代码覆盖率85%的指标，并且任务下发到各个小部门，苦逼的开发开始吭吃吭吃的开始补写单元测试，但是这些苦逼的开发平时的工作都要加班完成，哪还有闲情逸致慢慢写单元测试，只能想方设法的搞定覆盖率，完全不管是否真的起到了测试的作用（最坑爹的情况是单元测试里看不到一个assert），运行，绿色！</p>
+<p>就这样，苦逼的开发补完了单元测试，达到了85%的覆盖率，负责过程改进的家伙完成了自己的绩效，皆大欢喜。一段时间之后，数据库的数据开始乱掉了，很多单元测试变红了，有些代码修改了，对应的单元测试却没有修改，渐渐的，又回到的最初的状态，直到下一个负责过程改进的家伙来了。</p>
+<h2 id="为什么要写单元测试"><a href="#为什么要写单元测试" class="headerlink" title="为什么要写单元测试"></a>为什么要写单元测试</h2><p>在单元测试这个话题上，我只是一个菜鸟，是在不敢胡乱发表什么观点。Google上能搜到很多“为什么要写单元测试”的文章，我比较赞同的有下面两个观点</p>
+<ol>
+<li>单元测试可以尽早的发现bug<br>在开发过程中，越早发现问题，解决所要付出的代价越小。在单元测试期间发现bug，定位和修复都比较简单，修改后验证也很容易，不像集成测试要搭建复杂的环境，修复一个bug就要浪费很多时间。</li>
+<li>作为重构的质量保证<br>如果有单元测试，对代码重构后只要简单的运行一遍单元测试，就能知道重构是否引入了bug，这对单元测试是有要求的，后面会提到。</li>
+</ol>
+<h2 id="问题在哪里"><a href="#问题在哪里" class="headerlink" title="问题在哪里"></a>问题在哪里</h2><p>开头的真实故事里，问题的根源在单元测试的质量，由于太多的外部依赖，只要稍有一点配置不对，单元测试就没法通过，运行成功单元测试本身就成了一件困难重重的任务，除了写单元测试的时候，没有人愿意运行单元测试，即使修改了代码也不愿意管它，单元测试成了摆设。代码修改，单元测试却从来不改，最终完全腐烂了。</p>
+<h2 id="该怎么写单元测试"><a href="#该怎么写单元测试" class="headerlink" title="该怎么写单元测试"></a>该怎么写单元测试</h2><p>对于如何写单元测试，在网络上能看到的都是一些理论的东西，诸如“要Mock所有的依赖”、“AAA”，偶尔举个例子，也是对一个很简单场景下很简单的类写单元测试，完全没见过真正有用的。</p>
+<p>对应”为什么要写单元测试”，个人认为写单元测试分为两个层面：</p>
+<ol>
+<li>验证代码正确性<br>这是常规意义上“测试”所要求的部分，要设计各种测试用例、考虑边界条件，然后写成单元测试即可，这个比较简单，也是基本要求。</li>
+<li>作为重构的依据<br>这是对单元测试“可维护性”方面的要求，单元测试必需能很容易运行而不需要预先大量的配置，不能有太多的外部依赖，所有这样的依赖都应该MOCK。</li>
+</ol>
+<p>写单元测试的重点，就在于考虑其“可维护性”。在具体实践上会比较灵活，肯定不会像某些鼓吹单元测试的人所说MOCK全部依赖，即使有jmockit、easymock之类的工具，mock依然是件很繁琐事情，尤其是依赖比较多的时候，单元测试里将充满mock代码，真正的测试代码反而只占小部分。我个人的习惯是，外部的不可控的就mock，比如数据库、网络，完全自己实现的逻辑可以不用mock，比如一个纯算法的类。</p>
+<h2 id="为什么一直说覆盖率"><a href="#为什么一直说覆盖率" class="headerlink" title="为什么一直说覆盖率"></a>为什么一直说覆盖率</h2><p>为什么单元测试的考核指标总是覆盖率？我个人的猜测是，对于负责过程改进的那个家伙和QA，覆盖率是他们唯一能看到并且可量化的指标，毕竟单元测试不像功能代码，没做相应的功能就体现不出来。但是，覆盖率显然不是一个评价单元测试质量的好指标。</p>
+<p>如果真要找出一种保证单元测试质量的办法，我觉得Code Review还真不错，我们一直都用它保证我们功能代码。</p>
+<h2 id="代价"><a href="#代价" class="headerlink" title="代价"></a>代价</h2><p>无论是写单元测试，还是维护单元测试代码，都是有成本的，所以做到什么程度，又是另外一个要权衡的问题了。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+        
+        <div class="post-tags">
+            <a href="/tags/单元测试/" rel="tag"># 单元测试</a>
+          
+        </div>
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+              <a href="/2013/04/25/bash-array-expansion/" rel="next" title="Bash中数组的扩展">
+                <i class="fa fa-chevron-left"></i> Bash中数组的扩展
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+          </div>
+        </div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jiang Jizhong</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
+      </span>
+    
+  </div>
+
+
+
+        </div>
+      </div>
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么要写单元测试"><span class="nav-number">1.</span> <span class="nav-text">为什么要写单元测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题在哪里"><span class="nav-number">2.</span> <span class="nav-text">问题在哪里</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#该怎么写单元测试"><span class="nav-number">3.</span> <span class="nav-text">该怎么写单元测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么一直说覆盖率"><span class="nav-number">4.</span> <span class="nav-text">为什么一直说覆盖率</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#代价"><span class="nav-number">5.</span> <span class="nav-text">代价</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jiang Jizhong</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.3.0</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
+    
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  <script src="/js/utils.js?v=7.3.0"></script>
+  <script src="/js/motion.js?v=7.3.0"></script>
+
+  
+  <script src="/js/affix.js?v=7.3.0"></script>
+  <script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.3.0"></script>
+<script src="/js/post-details.js?v=7.3.0"></script>
+
+
+
+  <script src="/js/next-boot.js?v=7.3.0"></script>
+
+  
+
+  
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html class="theme-next gemini use-motion" lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="generator" content="Hexo 3.9.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    search: {
+      root: '/',
+      path: ''
+    },
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    }
+  };
+</script>
+
+  <meta name="description" content="最后一篇博客到现在已经快两个月了，果然还是太懒，总是不愿意写点东西，有什么办法能治好吗？ 好吧，不废话，进入正题。 用Java写网络程序，大部分时间都很好，所有的东西都封装了，简单，方便，无需处理大量的细节问题，看上去很完美。可惜一旦出现问题，就很难排查，封装的太厚了，而且所有的错误全部用IOException或者SocketException的方式抛出，加上一些怪异的信息，比如Connectio">
+<meta name="keywords" content="网络超时 connection timeout Java">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java Socket的一些常见问题">
+<meta property="og:url" content="http://oditszapc.com/2013/04/19/java-socket/index.html">
+<meta property="og:site_name" content="姜太公的记事本">
+<meta property="og:description" content="最后一篇博客到现在已经快两个月了，果然还是太懒，总是不愿意写点东西，有什么办法能治好吗？ 好吧，不废话，进入正题。 用Java写网络程序，大部分时间都很好，所有的东西都封装了，简单，方便，无需处理大量的细节问题，看上去很完美。可惜一旦出现问题，就很难排查，封装的太厚了，而且所有的错误全部用IOException或者SocketException的方式抛出，加上一些怪异的信息，比如Connectio">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-08-03T09:06:10.788Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java Socket的一些常见问题">
+<meta name="twitter:description" content="最后一篇博客到现在已经快两个月了，果然还是太懒，总是不愿意写点东西，有什么办法能治好吗？ 好吧，不废话，进入正题。 用Java写网络程序，大部分时间都很好，所有的东西都封装了，简单，方便，无需处理大量的细节问题，看上去很完美。可惜一旦出现问题，就很难排查，封装的太厚了，而且所有的错误全部用IOException或者SocketException的方式抛出，加上一些怪异的信息，比如Connectio">
+  <link rel="canonical" href="http://oditszapc.com/2013/04/19/java-socket/">
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Java Socket的一些常见问题 | 姜太公的记事本</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">姜太公的记事本</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+    <ul id="menu" class="menu">
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Categories</a>
+
+  </li>
+    </ul>
+</nav>
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2013/04/19/java-socket/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">Java Socket的一些常见问题
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2013-04-19 00:00:00" itemprop="dateCreated datePublished" datetime="2013-04-19T00:00:00+08:00">2013-04-19</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:06:10" itemprop="dateModified" datetime="2019-08-03T17:06:10+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Network/" itemprop="url" rel="index"><span itemprop="name">Network</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>最后一篇博客到现在已经快两个月了，果然还是太懒，总是不愿意写点东西，有什么办法能治好吗？ 好吧，不废话，进入正题。</p>
+<p>用Java写网络程序，大部分时间都很好，所有的东西都封装了，简单，方便，无需处理大量的细节问题，看上去很完美。可惜一旦出现问题，就很难排查，封装的太厚了，而且所有的错误全部用IOException或者SocketException的方式抛出，加上一些怪异的信息，比如Connection reset，完全不知道到底错误原因是什么。网络通信本身并不复杂，无非就是发送数据包，接收数据包。以最常用的TCP为例，其核心也无非就是可靠传输加上拥塞控制，而可靠传输的精华就是确认和重传，很简单不是吗。</p>
+<p>再看看linux的socket，比如connect，所有的错误都有明确的errorcode，一看就知道发生了什么错误。</p>
+<h2 id="socket和数据包"><a href="#socket和数据包" class="headerlink" title="socket和数据包"></a>socket和数据包</h2><p>之所以要先说socket，因为这是基础，了解了这个才能真正了解Java Socket里那些提示信息，如果根本不懂tcp，不懂socket，直接处理Java网络编程，也只能是浅浅的留在表面，不得深入。</p>
+<pre><code>socket s = socket()
+s.connect(ip, port)
+s.send(&apos;data&apos;)
+s.recv()
+s.close()</code></pre><p>这是一段简单的伪代码，描述客户端tcp socket建立连接和发送、接收数据，大部分语言都是类似的写法。那么，每一步可能会发生什么错误呢？我们一点点来分析。当然，忽略一些本地错误，比如没权限建socket之类的，只分析网络交互上的错误。</p>
+<h3 id="connect"><a href="#connect" class="headerlink" title="connect"></a>connect</h3><p>在connect里，常见的错误有两个：Connection refused和Connection Timeout。众所周知，tcp建立连接需要三次握手，读者可以自己Google下“tcp 三次握手”的图片，一看就能明白这个过程。</p>
+<p>在这个过程中，如果客户端发送SYN包，服务器返回了RST包，这表明在服务器上，没有服务监听客户端要访问的端口，在Unix上，connect系统调用直接返回ECONNREFUSED，也就是连接拒绝。(RST全称reset，三种情况下会产生RST：1. SYN达到某端口，但没有监听这个端口的服务；2. TCP想取消一个已有的连接；3. TCP收到一个根本不存在的连接上的数据包)。</p>
+<p>另外，路由器可能会返回一个目的不可达的ICMP包，Unix上，connect系统调用直接返回ENETUNREACH，这种情况下connect会重试，重新发送SYN，重试一段时间依然不行才会返回ENETUNREACH.</p>
+<p>最后一种情况是，过了一段时间，客户端根本没收到任何响应的数据包，connect系统调用返回ETIMEOUT，也就是连接超时。</p>
+<p>使用Java的时候，第一种情况抛出java.net.ConnectException: Connection refused. 第二和第三种情况都会在等很久出现java.net.ConnectException: Connection timed out，但其实导致问题的原因不一样。</p>
+<p>Java在调用connect时可以指定超时，这点比connect系统调用好，后者没法直接设置超时。</p>
+<h3 id="send"><a href="#send" class="headerlink" title="send"></a>send</h3><p>在send里可能发生的错误有超时和Connection reset。先说第一种情况，了解tcp的都知道，tcp发送了数据后要等对方确认，如果对方一直没有发送确认消息，发送方会一直重试，当然，实际上采用的是“指数退避”算法，不过我们不关心这个，只要知道发送了没确认tcp会一直重试，直到达到一定次数为止。然后就超时了。</p>
+<p>另一种情况是对方关闭了socket，主动close或者crash了，这边还在send，对方服务器返回RST包，在Unix上，send系统调用返回ECONNRESET，错误信息时Connection reset by peer。 用Java也差不多，错误是java.net.SocketException: Connection reset。</p>
+<h3 id="recv"><a href="#recv" class="headerlink" title="recv"></a>recv</h3><p>读取对方的数据，最常见的错误是超时，及其偶然的情况下，出现Connection rest。我唯一能想到的出现Connection reset的情况是这样的：本机阻塞在read或者recv上，对方关闭了连接，但本机没有收到FIN（在模拟这个问题是，我用iptable丢掉了FIN包），在开启了keepalive的情况下，本机过一段时间会发送keepalive的探测包（<code>/proc/sys/net/ipv4/tcp_keepalive_time</code>），可以用netstat -to查看tcp相关的定时器，对方返回RST，出现Connection reset。也有可能对方没有任何响应（比如对方直接拔掉网线，本机也会收不到FIN，同样，所有的探测包也没有响应），探测几次后本机超时。</p>
+<h2 id="close"><a href="#close" class="headerlink" title="close"></a>close</h2><p>受到linger选项的影响，在Java里很少出问题，先不说这个了。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+              <a href="/2013/02/24/access-database-in-shell-script/" rel="next" title="在Shell脚本里访问数据库">
+                <i class="fa fa-chevron-left"></i> 在Shell脚本里访问数据库
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+              <a href="/2013/04/25/bash-array-expansion/" rel="prev" title="Bash中数组的扩展">
+                Bash中数组的扩展 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jiang Jizhong</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
+      </span>
+    
+  </div>
+
+
+
+        </div>
+      </div>
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#socket和数据包"><span class="nav-number">1.</span> <span class="nav-text">socket和数据包</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#connect"><span class="nav-number">1.1.</span> <span class="nav-text">connect</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#send"><span class="nav-number">1.2.</span> <span class="nav-text">send</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#recv"><span class="nav-number">1.3.</span> <span class="nav-text">recv</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#close"><span class="nav-number">2.</span> <span class="nav-text">close</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jiang Jizhong</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.3.0</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
+    
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  <script src="/js/utils.js?v=7.3.0"></script>
+  <script src="/js/motion.js?v=7.3.0"></script>
+
+  
+  <script src="/js/affix.js?v=7.3.0"></script>
+  <script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.3.0"></script>
+<script src="/js/post-details.js?v=7.3.0"></script>
+
+
+
+  <script src="/js/next-boot.js?v=7.3.0"></script>
+
+  
+
+  
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

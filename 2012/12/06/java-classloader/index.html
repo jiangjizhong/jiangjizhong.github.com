@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html class="theme-next gemini use-motion" lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="generator" content="Hexo 3.9.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    search: {
+      root: '/',
+      path: ''
+    },
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    }
+  };
+</script>
+
+  <meta name="description" content="Classloader是Java独有的东西，正如其名，是类加载器。本文是对Java ClassLoader的一个简单总结，不会很详细，只说一些要点。 Classloader的层次结构BootstrapClassloader &amp;lt;--- ExtensionClassloader &amp;lt;--- AppClassloader &amp;lt;--- CustomClassLoader如上，前三个是JVM内">
+<meta name="keywords" content="Java ClassLoader 双亲委托 Thread context">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java ClassLoader">
+<meta property="og:url" content="http://oditszapc.com/2012/12/06/java-classloader/index.html">
+<meta property="og:site_name" content="姜太公的记事本">
+<meta property="og:description" content="Classloader是Java独有的东西，正如其名，是类加载器。本文是对Java ClassLoader的一个简单总结，不会很详细，只说一些要点。 Classloader的层次结构BootstrapClassloader &amp;lt;--- ExtensionClassloader &amp;lt;--- AppClassloader &amp;lt;--- CustomClassLoader如上，前三个是JVM内">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-08-03T09:03:40.412Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java ClassLoader">
+<meta name="twitter:description" content="Classloader是Java独有的东西，正如其名，是类加载器。本文是对Java ClassLoader的一个简单总结，不会很详细，只说一些要点。 Classloader的层次结构BootstrapClassloader &amp;lt;--- ExtensionClassloader &amp;lt;--- AppClassloader &amp;lt;--- CustomClassLoader如上，前三个是JVM内">
+  <link rel="canonical" href="http://oditszapc.com/2012/12/06/java-classloader/">
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Java ClassLoader | 姜太公的记事本</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">姜太公的记事本</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+    <ul id="menu" class="menu">
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Categories</a>
+
+  </li>
+    </ul>
+</nav>
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2012/12/06/java-classloader/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">Java ClassLoader
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2012-12-06 00:00:00" itemprop="dateCreated datePublished" datetime="2012-12-06T00:00:00+08:00">2012-12-06</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:03:40" itemprop="dateModified" datetime="2019-08-03T17:03:40+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/language/" itemprop="url" rel="index"><span itemprop="name">编程语言</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Classloader是Java独有的东西，正如其名，是类加载器。本文是对Java ClassLoader的一个简单总结，不会很详细，只说一些要点。</p>
+<h2 id="Classloader的层次结构"><a href="#Classloader的层次结构" class="headerlink" title="Classloader的层次结构"></a>Classloader的层次结构</h2><pre><code>BootstrapClassloader &lt;--- ExtensionClassloader &lt;--- AppClassloader &lt;--- CustomClassLoader</code></pre><p>如上，前三个是JVM内置的。BootstrapClassloader加载核心类，就是lib/rt.jar, lib/i18n.jar等，ExtensionClassloader加载扩展内，lib/ext下的类。AppClassloader加载应用的类，就是从main开始的类。</p>
+<h2 id="Classloader的双亲委托模型"><a href="#Classloader的双亲委托模型" class="headerlink" title="Classloader的双亲委托模型"></a>Classloader的双亲委托模型</h2><p>Classloader采用双亲委派模型，Classloader<strong>应该</strong>先请求parent Classloader加载类，如果加载不成功再自己加载。这样设计的目的是为了安全性，保证核心类只能由BootstrapClassloader加载，用户不能自己定义java.xxx这样的类。</p>
+<h2 id="Classloader的命名空间"><a href="#Classloader的命名空间" class="headerlink" title="Classloader的命名空间"></a>Classloader的命名空间</h2><p>每个classloader为自己加载的类提供namespace，所以类由包名和ClassLoader唯一确定，(test.A, klassloader1)和(test.A, klassloader2)<strong>不是</strong>一个类，强制类型转换会抛出ClassCastException</p>
+<pre><code>//当前类的ClassLoader是currentClassLoader，klassLoader的parent是currentClassLoader
+MyClassLoader klassLoader = new MyClassLoader(currentClassLoader)
+
+Class c = new MyClassLoader.loadClass(&quot;test.A&quot;);
+Object obj = c.newInstance();
+A a = (A)obj;</code></pre><p>各位可能觉得这个代码很怪异，当前类已经直接使用了test.A，但是又新建了一个classloader加载test.A。现别管这些，这个例子仅仅是为了说明ClassLoader的namespace。那么这里会不会抛ClassCastException呢？取决于MyClassLoader是怎么实现的。首先，当前类所直接引用的test.A，其ClassLoader是currentClassLoader,所以当前类所<strong>直接引用</strong>的test.A的唯一标识是(test.A, currentClassLoader).如果MyClassLoader是这样的</p>
+<pre><code>//MyClassLoader.java
+
+protected void findClass(String name){
+  //nothing
+}</code></pre><p>MyClassLoader没有覆盖loadClass，自己又没有真正的加载test.A，就会委托parent加载test.A，parent是currentClassLoader，于是变量c实际上就是(test.A, currentClassLoader)，是同一个类，不会出现ClassCastException. 如果MyClassLoader自己加载了test.A，那么变量c就是(test.A, klassLoader)，和当前类直接引用的不是同一个类，会出现ClassCastException。</p>
+<h2 id="定义自己的ClassLoader"><a href="#定义自己的ClassLoader" class="headerlink" title="定义自己的ClassLoader"></a>定义自己的ClassLoader</h2><p>ClassLoader必须继承自<code>java.lang.ClassLoader</code>，一般来说，自己实现<code>findClass</code>方法即可，不要覆盖<code>loadClass</code>。看<code>java.lang.ClassLoader</code>的代码可以知道，<code>loadClass</code>方法完成了双亲委托模型，除非确实决定不使用双亲委托模型。可以参考上一段。</p>
+<h2 id="JVM让自定义ClassLoader加载哪些类"><a href="#JVM让自定义ClassLoader加载哪些类" class="headerlink" title="JVM让自定义ClassLoader加载哪些类"></a>JVM让自定义ClassLoader加载哪些类</h2><p>假设以下代码，main里new了一个classloader加载A，A里使用了String和B。MyClassLoader自己加载了A而不是委托给parent</p>
+<pre><code>//Main.java
+MyClassLoader klassLoader = new MyClassLoader();
+Class klassA = klassLoader.loadClass(&apos;somepackage.A&apos;);
+...
+
+//A.java
+String s = &quot;abc&quot;;
+B b = new B(s);
+
+//MyClassLoader.java
+
+protected Class findClass(String name){
+    //read some byte
+//defineClass
+}</code></pre><p>运行可以发现，MyClassLoader的loadClass方法被调用了三次，第一次请求加载somepackage.A，第二次请求加载java.lang.String， 第三次请求加载B。可以简单的认为：一旦你自定义的ClassLoader加载了某个类A，JVM将请求你的ClassLoader加载A使用到的所有的类，包括java.lang.*！具体的可以参考JVM连接模型。因此，如果你真的覆盖了loadClass，也要确保调用了parent.loadClass，否则这样一个ClassLoader没有实际用处。</p>
+<h2 id="Thread-Context-ClassLoader"><a href="#Thread-Context-ClassLoader" class="headerlink" title="Thread Context ClassLoader"></a>Thread Context ClassLoader</h2><p>很多时候，我们需要用classloader加载某个资源，通常会有三种选择：System ClassLoader, Current ClassLoader, Thread Context ClassLoader.选择正确的ClassLoader就成了头疼的问题。</p>
+<ul>
+<li><strong>Current ClassLoader</strong>: 当前类的ClassLoader。 getClass().getClassLoader()</li>
+<li><strong>System ClassLoader</strong>: 系统ClassLoader，它负责加载classpath下的内容，也就是启动Java时指定的-cp或者-classpath。 getClass().getClassLoader().getSystemClassLoader(). </li>
+<li><strong>Thread Context ClassLoader</strong>: Thread.currentThread().getContextClassLoader()</li>
+</ul>
+<p>比如在我的代码里，我要加载一张图片，让哪个ClassLoader加载呢？起始有个很简单的近似废话的原则：让能加载的ClassLoader加载。</p>
+<p>如果能保证要加载的内容在Classpath下，可以使用System ClassLoader。如果只确定资源和当前类在一起，用Current ClassLoader就非常合适。如果知道某个类的ClassLoader可以加载资源，直接用对应类的ClassLoader。</p>
+<p>Thread Context ClassLoader不是某个具体的ClassLoader，如果Thread没有设置ClassLoader，默认是parent Thread的ClassLoader，如果所有线程都没设置ClassLoader, 默认是System ClassLoader. 为什么要有Thread Context ClassLoader 呢？有时候，当前类的ClassLoader要动态载入外界提供的资源，但是这个ClassLoader不知道该怎么加载（通过http url？本地路径？压缩文件？），显而易见的方式是告诉当前ClassLoader另外一个ClassLoader，让它通过这个新的ClassLoader加载。Thread Context ClassLoader就是做这个。就以JNDI为例，JNDI的类是由bootstarp ClassLoader从rt.jar中间载入的，但是JNDI具体的核心驱动是由正式的实现提供的，并且通常会处于-cp参数之下（注：也就是默认的System ClassLoader管理），这就要求bootstartp ClassLoader去载入只有SystemClassLoader可见的类，正常的逻辑就没办法处理。怎么办呢？当然是使用Thread Context ClassLoader，把Thread.setContextClassLoader(System ClassLoader)，然后BootstrapClassloader就可以thread.getContextClassLoader().getRes…。 Velocity的资源加载实现也使用了Thread Context ClassLoader，有兴趣的同学可以看看。</p>
+<p><em>为什么不采用可以给ClassLoder设置findClass策略的方式呢，比如ClassLoder提供一个方法setFindClassStrategy，然后ClassLoder内部用这个Strategy找到字节数组再defineClass？看上去不错，不过现在Java不支持……</em></p>
+<p>综上，如果确定资源在Classpath里，可以用SystemClassLoader，如果自己是ClassLoder，要加载一个不知道该怎么加载的类，又不能委托parent，可以用Thread Context ClassLoder。如果你使用的库要求要使用Thread Context ClassLoder，那么用Thread Context ClassLoder。其他时候，最好用Current ClassLoder.</p>
+<h2 id="getResources路径的问题"><a href="#getResources路径的问题" class="headerlink" title="getResources路径的问题"></a>getResources路径的问题</h2><ul>
+<li><code>getClass().getResources(path)</code> ，这里的path如果以 / 开头，就是从classpath的根路径开始查找，否则就是相对于当前class开始查找。</li>
+<li><code>getClassLoader.getResource()</code> 这里的path不能以/ 开头，从classpath的根路径开始查找。</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+        
+        <div class="post-tags">
+            <a href="/tags/Java/" rel="tag"># Java</a>
+          
+        </div>
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+              <a href="/2012/12/05/mvc-design-pattern-in-web/" rel="next" title="Web开发中的MVC设计模式">
+                <i class="fa fa-chevron-left"></i> Web开发中的MVC设计模式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+              <a href="/2012/12/08/something-about-java/" rel="prev" title="吐槽Java中一些让人不爽的地方">
+                吐槽Java中一些让人不爽的地方 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jiang Jizhong</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
+      </span>
+    
+  </div>
+
+
+
+        </div>
+      </div>
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Classloader的层次结构"><span class="nav-number">1.</span> <span class="nav-text">Classloader的层次结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Classloader的双亲委托模型"><span class="nav-number">2.</span> <span class="nav-text">Classloader的双亲委托模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Classloader的命名空间"><span class="nav-number">3.</span> <span class="nav-text">Classloader的命名空间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#定义自己的ClassLoader"><span class="nav-number">4.</span> <span class="nav-text">定义自己的ClassLoader</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM让自定义ClassLoader加载哪些类"><span class="nav-number">5.</span> <span class="nav-text">JVM让自定义ClassLoader加载哪些类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Thread-Context-ClassLoader"><span class="nav-number">6.</span> <span class="nav-text">Thread Context ClassLoader</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#getResources路径的问题"><span class="nav-number">7.</span> <span class="nav-text">getResources路径的问题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jiang Jizhong</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.3.0</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
+    
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  <script src="/js/utils.js?v=7.3.0"></script>
+  <script src="/js/motion.js?v=7.3.0"></script>
+
+  
+  <script src="/js/affix.js?v=7.3.0"></script>
+  <script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.3.0"></script>
+<script src="/js/post-details.js?v=7.3.0"></script>
+
+
+
+  <script src="/js/next-boot.js?v=7.3.0"></script>
+
+  
+
+  
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

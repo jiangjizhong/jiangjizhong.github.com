@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html class="theme-next gemini use-motion" lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="generator" content="Hexo 3.9.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    search: {
+      root: '/',
+      path: ''
+    },
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    }
+  };
+</script>
+
+  <meta name="description" content="Http Keepalive和TCP连接数是两个完全不同的东西，之所以要放在一起说，因为是前段时间遇到了TIME_WAIT状态的连接数过高，运维人员说是Apache的Keepalive时间太短，当时觉得不合理，仔细思考了下，果然不合理。 Keepalive首先简单的介绍下Keepalive，权当是凑字数。Http作为应用层协议，绝大多数时候，它都使用TCP作为传输层协议。众所周知，TCP协议需要三">
+<meta name="keywords" content="http keepalive 连接数 TCP 状态">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Http Keepalive和TCP连接数">
+<meta property="og:url" content="http://oditszapc.com/2012/12/19/http-Keepalive-and-tcp-connections/index.html">
+<meta property="og:site_name" content="姜太公的记事本">
+<meta property="og:description" content="Http Keepalive和TCP连接数是两个完全不同的东西，之所以要放在一起说，因为是前段时间遇到了TIME_WAIT状态的连接数过高，运维人员说是Apache的Keepalive时间太短，当时觉得不合理，仔细思考了下，果然不合理。 Keepalive首先简单的介绍下Keepalive，权当是凑字数。Http作为应用层协议，绝大多数时候，它都使用TCP作为传输层协议。众所周知，TCP协议需要三">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-08-03T09:04:12.498Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Http Keepalive和TCP连接数">
+<meta name="twitter:description" content="Http Keepalive和TCP连接数是两个完全不同的东西，之所以要放在一起说，因为是前段时间遇到了TIME_WAIT状态的连接数过高，运维人员说是Apache的Keepalive时间太短，当时觉得不合理，仔细思考了下，果然不合理。 Keepalive首先简单的介绍下Keepalive，权当是凑字数。Http作为应用层协议，绝大多数时候，它都使用TCP作为传输层协议。众所周知，TCP协议需要三">
+  <link rel="canonical" href="http://oditszapc.com/2012/12/19/http-Keepalive-and-tcp-connections/">
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Http Keepalive和TCP连接数 | 姜太公的记事本</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">姜太公的记事本</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+    <ul id="menu" class="menu">
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Categories</a>
+
+  </li>
+    </ul>
+</nav>
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2012/12/19/http-Keepalive-and-tcp-connections/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">Http Keepalive和TCP连接数
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2012-12-19 00:00:00" itemprop="dateCreated datePublished" datetime="2012-12-19T00:00:00+08:00">2012-12-19</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:04:12" itemprop="dateModified" datetime="2019-08-03T17:04:12+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Network/" itemprop="url" rel="index"><span itemprop="name">Network</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Http Keepalive和TCP连接数是两个完全不同的东西，之所以要放在一起说，因为是前段时间遇到了<code>TIME_WAIT</code>状态的连接数过高，运维人员说是Apache的Keepalive时间太短，当时觉得不合理，仔细思考了下，果然不合理。</p>
+<h2 id="Keepalive"><a href="#Keepalive" class="headerlink" title="Keepalive"></a>Keepalive</h2><p>首先简单的介绍下Keepalive，权当是凑字数。Http作为应用层协议，绝大多数时候，它都使用TCP作为传输层协议。众所周知，TCP协议需要三次握手建立连接，需要1.5个RTT，如果网络比较差，加上丢包和重传，需要更多的时间。通常请求一张html页面，其中包含了很多资源，有css、js、图片等，每个文件都不大，建立TCP连接的时间甚至比传输时间还长，太不划算。于是就有了Keepalive：既然每次建立连接太浪费时间，那么就用一个持久连接，每次都用这个连接请求新资源。事实证明，这个策略非常正确，页面加载明显变快，用户体验一下子就上来了.</p>
+<p>不过Keepalive也不是完美无缺的。浏览器非常自私，不到迫不得已，它从来不主动关闭连接，毕竟关闭连接下次有请求就要重新打开，对用户来说就感觉这个浏览器慢，在浏览器竞争如此激烈的今天，哪个浏览器会干这种事呢。所以，不要指望浏览器会主动关闭连接（当然，浏览器如果觉得自己的同时打开的连接太多了，它也会关掉一些，开这么多连接对自己也是个负担，所以要关掉。说到底，浏览器是自私的）。服务器一般支持keepalive timeout之类的，如果客户端一段时间内没有发送新请求，服务器就把对应的TCP连接关掉。</p>
+<p><em>从上面的描述也可以看出来，如果不存在同一个连接请求多个资源的场景，服务器应该关闭Keepalive</em></p>
+<h2 id="关闭连接和TCP状态"><a href="#关闭连接和TCP状态" class="headerlink" title="关闭连接和TCP状态"></a>关闭连接和TCP状态</h2><p>大部分都知道TCP建立连接需要三步（三次握手），关闭连接需要四步。关闭连接的时候，发起关闭的一方为“主动关闭”，另一方为被动关闭。过程和状态是这样的：</p>
+<pre><code>A                             B                                                                                                           
+-------------FIN--------------&gt;                                                                                                           
+FIN_WAIT1                                                                                                                                 
+&lt;------------ACK---------------                                                                                                           
+FIN_WAIT2            CLOSE_WAIT
+&lt;------------FIN---------------
+TIME_WAIT              LAST_ACK
+------------ACK---------------&gt;
+TIME_WAIT                CLOSED
+.
+.
+.
+2MSL (2 * Max Segment Lifetime)
+.
+.
+.
+CLOSED</code></pre><p>上面的图里，A是主动关闭，进入<code>TIME_WAIT</code>状态，B是被动关闭，进入<code>CLOSE_WAIT</code>状态。根据第一段的描述，服务器是主动关闭的一方，进入<code>TIME_WAIT</code>状态，客户端是被动关闭的一方，进入<code>CLOSE_WAIT</code>状态。</p>
+<p><em>主动关闭为什么发送了最后一个ACK还要等待2MSL才真正关闭连接呢？假设最后的ACK包丢了，没传到B，B会怎么样？根据TCP协议，B会一直等待并且重传上一个FIN。A等2MSL是为了尽量保证最后的ACK已经送达B。</em></p>
+<h2 id="Keepalive-Timeout和连接数"><a href="#Keepalive-Timeout和连接数" class="headerlink" title="Keepalive Timeout和连接数"></a>Keepalive Timeout和连接数</h2><p>那么，Keepalive time会如何影响连接数呢？不妨建立一个简单的模型：服务器匀速接收到连接，每秒10个，每个连接只发送一次请求，5s时间后关闭。2MSL=3 (<code>cat /proc/sys/net/ipv4/tcp_fin_timeout</code>可以看到机器上的值)</p>
+<pre><code>时间            0   1   2   3   4   5   6   7   8   9   10  11
+ESTABLISHED     0   10  20  30  40  50  50  50  50  50  50  50
+TIME_WAIT       0   0   0   0   0   0   10  20  30  30  30  30</code></pre><p>在0-1秒，建立了10个连接，没有连接关闭，1-2秒，又建立了10个连接，没有连接关闭……在第6秒，0-1秒建立的连接超时关闭了，出现10个<code>TIME_WAIT</code>状态的连接，同时有10个新连接建立，所以ESTABLISHED状态的连接还是50个，<code>TIME_WAIT</code>状态的连接10个……到第9秒，10个<code>TIME_WAIT</code>状态的连接彻底关闭，同时产生10个新的<code>TIME_WAIT</code>，<code>TIME_WAIT</code>状态的连接还是30个。在这个模型中：keepalive只影响了ESTABLISHED状态连接，不影响<code>TIME_WAIT</code>状态的连接，2MSL只影向<code>TIME_WAIT</code>状态的连接，不影响ESTABLISHED状态的连接。</p>
+<p>还是上面的模型，延长keepalive时间为6s，连接数变化如下。</p>
+<pre><code>时间            0   1   2   3   4   5   6   7   8   9   10  11
+ESTABLISHED     0   10  20  30  40  50  60  60  60  60  60  60
+TIME_WAIT       0   0   0   0   0   0   0   10  10  10  10  10</code></pre><p>虽然这是一个简化的模型，但是结论是没问题的，有兴趣的同学可以考虑变化的连接速度和更精细的时间。这里只说最终结论：<strong>keepalive只影响ESTABLISHED状态的最大数量，同样条件下，keepalive越大，ESTABLISHED最大值就越大。同样条件下，2MSL越大，TIME_WAIT最大值就越大</strong></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+              <a href="/2012/12/11/How-to-interpret-complex-C-declarations/" rel="next" title="(译)如何理解复杂的C/C++声明">
+                <i class="fa fa-chevron-left"></i> (译)如何理解复杂的C/C++声明
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+              <a href="/2013/02/03/simple-method-to-test-bandwidth-between-2-machine/" rel="prev" title="测量两台机器间带宽的简单方法">
+                测量两台机器间带宽的简单方法 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jiang Jizhong</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
+      </span>
+    
+  </div>
+
+
+
+        </div>
+      </div>
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Keepalive"><span class="nav-number">1.</span> <span class="nav-text">Keepalive</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关闭连接和TCP状态"><span class="nav-number">2.</span> <span class="nav-text">关闭连接和TCP状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Keepalive-Timeout和连接数"><span class="nav-number">3.</span> <span class="nav-text">Keepalive Timeout和连接数</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jiang Jizhong</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.3.0</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
+    
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  <script src="/js/utils.js?v=7.3.0"></script>
+  <script src="/js/motion.js?v=7.3.0"></script>
+
+  
+  <script src="/js/affix.js?v=7.3.0"></script>
+  <script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.3.0"></script>
+<script src="/js/post-details.js?v=7.3.0"></script>
+
+
+
+  <script src="/js/next-boot.js?v=7.3.0"></script>
+
+  
+
+  
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

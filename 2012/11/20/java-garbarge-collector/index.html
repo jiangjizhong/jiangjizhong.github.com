@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html class="theme-next gemini use-motion" lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="generator" content="Hexo 3.9.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    search: {
+      root: '/',
+      path: ''
+    },
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    }
+  };
+</script>
+
+  <meta name="description" content="对于Java垃圾收集的一个总结。 垃圾收集（GC）用C/C++写代码的人都知道，管理内存是一件苦难而且痛苦的事情，一不小心就出现内存泄漏。Java程序员就幸福多了，从来不用怎么关心怎么回收内存，随心所欲的new对象，虚拟机会帮擦屁股的。提起垃圾收集，很多人就会很自然的会把这个概念和Java关联在一起，实际上垃圾收集早在Java出现之前就已经有了，最要在Lisp中出现，只不过Java名气太大（或者是">
+<meta name="keywords" content="Java Garbage Collector 垃圾收集 参数">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java Garbage Collector">
+<meta property="og:url" content="http://oditszapc.com/2012/11/20/java-garbarge-collector/index.html">
+<meta property="og:site_name" content="姜太公的记事本">
+<meta property="og:description" content="对于Java垃圾收集的一个总结。 垃圾收集（GC）用C/C++写代码的人都知道，管理内存是一件苦难而且痛苦的事情，一不小心就出现内存泄漏。Java程序员就幸福多了，从来不用怎么关心怎么回收内存，随心所欲的new对象，虚拟机会帮擦屁股的。提起垃圾收集，很多人就会很自然的会把这个概念和Java关联在一起，实际上垃圾收集早在Java出现之前就已经有了，最要在Lisp中出现，只不过Java名气太大（或者是">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="http://oditszapc.com/images/generation.gif">
+<meta property="og:image" content="http://oditszapc.com/images/collectors.jpg">
+<meta property="og:updated_time" content="2019-08-03T09:02:14.014Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java Garbage Collector">
+<meta name="twitter:description" content="对于Java垃圾收集的一个总结。 垃圾收集（GC）用C/C++写代码的人都知道，管理内存是一件苦难而且痛苦的事情，一不小心就出现内存泄漏。Java程序员就幸福多了，从来不用怎么关心怎么回收内存，随心所欲的new对象，虚拟机会帮擦屁股的。提起垃圾收集，很多人就会很自然的会把这个概念和Java关联在一起，实际上垃圾收集早在Java出现之前就已经有了，最要在Lisp中出现，只不过Java名气太大（或者是">
+<meta name="twitter:image" content="http://oditszapc.com/images/generation.gif">
+  <link rel="canonical" href="http://oditszapc.com/2012/11/20/java-garbarge-collector/">
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Java Garbage Collector | 姜太公的记事本</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">姜太公的记事本</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+    <ul id="menu" class="menu">
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Categories</a>
+
+  </li>
+    </ul>
+</nav>
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2012/11/20/java-garbarge-collector/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">Java Garbage Collector
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2012-11-20 00:00:00" itemprop="dateCreated datePublished" datetime="2012-11-20T00:00:00+08:00">2012-11-20</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:02:14" itemprop="dateModified" datetime="2019-08-03T17:02:14+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/language/" itemprop="url" rel="index"><span itemprop="name">编程语言</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>对于Java垃圾收集的一个总结。</p>
+<h2 id="垃圾收集（GC）"><a href="#垃圾收集（GC）" class="headerlink" title="垃圾收集（GC）"></a>垃圾收集（GC）</h2><p>用C/C++写代码的人都知道，管理内存是一件苦难而且痛苦的事情，一不小心就出现内存泄漏。Java程序员就幸福多了，从来不用怎么关心怎么回收内存，随心所欲的new对象，虚拟机会帮擦屁股的。提起垃圾收集，很多人就会很自然的会把这个概念和Java关联在一起，实际上垃圾收集早在Java出现之前就已经有了，最要在Lisp中出现，只不过Java名气太大（或者是因为Java程序员太多？）。</p>
+<p>那么到底什么是GC呢？<a href="http://en.wikipedia.org/wiki/Garbage_collection_%28computer_science%29" target="_blank" rel="noopener">维基百科</a>的解释如下</p>
+<blockquote>
+<p>In computer science, garbage collection (GC) is a form of automatic memory management. The garbage collector, or just collector, attempts to reclaim garbage, or memory occupied by objects that are no longer in use by the program.</p>
+</blockquote>
+<p>简单点说就是，GC是一种自动内存管理的方式，收集器能把不再使用的内存回收。好了，定义就到这里，相信大家本来就有一些概念，没必要深入探讨了。</p>
+<p>如果我们要自己实现一个收集器，必然要解决如下两个问题</p>
+<ul>
+<li><p>哪些内存需要回收  </p>
+<p>如果连哪些内存（对象）要回收都不知道还说个屁啊！这个必须要知道。</p>
+</li>
+<li><p>怎么回收  </p>
+<p>知道了哪些内存块可以回收，接下来就怎么回收的问题了。</p>
+</li>
+</ul>
+<p>基本上所有的垃圾收集器都是围绕着这两个问题做各种权衡取舍。</p>
+<h2 id="哪些内存可以回收"><a href="#哪些内存可以回收" class="headerlink" title="哪些内存可以回收"></a>哪些内存可以回收</h2><ul>
+<li><p>引用计数  </p>
+<p>  这种方法是给每个对象增加一个“引用数”属性，当有新的引用指向该对象时，引用数加一，不再引用时，引用数减一。引用数量为零时，对象就可以被回收了。</p>
+<p>  引用计数法的主要优点是简单。另外，一旦对象不被引用就可以立即回收，不用特地暂定整个应用来寻找可回收内存，后面提到的Tracing方法就是专门暂停整个应用。</p>
+<p>  引用计数法一个很重要的缺点是不能处理循环引用。</p>
+</li>
+<li><p>Tracing  </p>
+<p>  Tracing是从一些存活的对象开始，顺着这些对象的引用开始走，所有遇到的对象都认为是存活的，找完了，剩下的对象都是可回收的。(软引用、弱引用后面再说)。</p>
+<p>  和引用计数相比，Tracing的缺点是复杂点，需要暂停整个应用（停止整个应用，然后找到所有存活的对象，再回收已经死亡的对象），需要额外的内存开销。优点是能处理循环引用。</p>
+<p>  Java所有的收集器都是才用Tracing算法。Tracing开始的对象称为GC ROOT，包括</p>
+<ul>
+<li><strong>Class</strong> 系统类加载器加载的类，这些类不能卸载。要注意的是，用户自定义的ClassLoader加载的类不是GC Root.</li>
+<li><strong>Thread</strong> 活动的线程</li>
+<li><strong>Stack Local</strong> 局部变量、方法的参数</li>
+<li><strong>JNI Local</strong> JNI方法的局部变量</li>
+<li><strong>JNI Global</strong> JNI全局引用</li>
+<li><strong>Monitor Used</strong> 作为锁使用的对象，比如synchronized(obj)，obj就成了GC Root.</li>
+</ul>
+</li>
+</ul>
+<h2 id="如何回收"><a href="#如何回收" class="headerlink" title="如何回收"></a>如何回收</h2><p>这个问题看上去似乎很简单：把对象占用的空间直接标记为可用不就可以了？的确，这是一个办法，不过直接清理会导致内存碎片，最后可能出现虽然还有很大可用空间，但是每个可用空间都很小，大对象分配失败。于是有人提出了另外一个办法：把内存分成同样大小的两部分，任何时候，只使用其中一块，满了之后，把存活的对象Copy到另一块，原来的一块全部清空，这个办法解决了碎片问题，而且效率也不错，但是太浪费内存了，8G的内存只能利用4G，太奢侈。</p>
+<p>再后来，就出现了分代垃圾收集。</p>
+<h2 id="分代垃圾收集"><a href="#分代垃圾收集" class="headerlink" title="分代垃圾收集"></a>分代垃圾收集</h2><p>分代垃圾收集基于这样的假设：</p>
+<ul>
+<li>大部分对象的存活时间都很短</li>
+<li>很少有老对象到新对象的引用</li>
+</ul>
+<p>如果这两个假设成立（从现实世界看，这两个假设绝大对数时候都是成立的），GC的时候如果对整个内存堆就显得很浪费。分代垃圾收集把内存堆分成年轻代和年老代，按照对象的年龄把对象放在合适的内存区域。</p>
+<img src="/images/generation.gif" width="75%">
+
+<p>年轻代包括eden区和两个survior区，通常，对象在eden区分配，其中一个survior区是空的。Young GC的时候，eden区和使用中的survior里存活的对象被Copy到空的survior，两个survior对调角色。下次GC重复这一过程，所有Copy的对象年龄加一，到一定年龄的时候就进入年老代。</p>
+<h2 id="每个代多大合适"><a href="#每个代多大合适" class="headerlink" title="每个代多大合适"></a>每个代多大合适</h2><p>可惜，没有确切的指标说明每个代多大最好，只能根据经验值和实际表现做一些调节。</p>
+<ul>
+<li>如果年轻代太小，YGC频繁，一些本来存在时间不算长的对象也会进入年老代，进而导致不必要的FGC</li>
+<li>如果年轻代太大，年老代就必然变小（内存大小是固定的），FGC频繁，另外YGC也会变慢。</li>
+<li>如果Survivor过小， 对象直接从年轻代进入年老代，增加导致不必要的FGC。</li>
+<li>Survivor过大会造成浪费</li>
+</ul>
+<p>一般来说，年轻代占整个堆的1/3到1/4比较合适。但是如果想得到更精确的值，必须对应用中对象的生命周期有清晰的认识，要知道大部分对象能存活多长时间，有多少“永生不死”对象。</p>
+<h2 id="JVM中的收集器"><a href="#JVM中的收集器" class="headerlink" title="JVM中的收集器"></a>JVM中的收集器</h2><p>JVM自带了不少垃圾收集器，要注意的是，年轻代和年老代使用的收集器不一样，需要分别指定年轻代和年老代的收集器，而且不是所有的年轻代和年老代收集器可以搭配使用。</p>
+<img src="/images/collectors.jpg" width="75%">  
+
+<p>上图中，黄色区域表示年轻代收集器，灰色区域表示可用的年老代收集器，也是三个。连线表示可以搭配使用。可以看出，最多有六种组合。</p>
+<ul>
+<li><strong>Serial</strong><br>年轻代收集器，单线程，一般只用于开发环境。但是，如果服务器只有一个处理器，就应该使用Serial+Serial Old，使用CMS或者Prallel反而不好。毕竟多线程管理也增加开销。</li>
+<li><strong>ParNew</strong><br>年轻代收集器，多线程。要注意和下面的Parallel Scavenge的区别在于，ParNew可以和CMS一起工作</li>
+<li><strong>Parallel Scavenge</strong><br>年轻代收集器，多线程，可以和Serial Old或者Parallel Old一起工作，不能和CMS一起。</li>
+<li><strong>Serial Old</strong><br>年老代收集器，单线程，一般只用于开发环境。</li>
+<li><strong>Parallel Old</strong><br>年老代收集器，多线程，运行的时候暂停整个虚拟机。吞吐率比较好，暂停时间长，适合后台之类的对响应时间要求不严格的应用。</li>
+<li><strong>CMS</strong><br>Concurrent Mark Sweep，并发，不是并行。具有比较短的暂停时间，吞吐率不如Parallel Old，适合对响应时间要求严格的应用。</li>
+</ul>
+<p>设置JVM参数的时候，要搞清楚默认的年轻代或年老代的收集器。</p>
+<h2 id="选择收集器组合要考虑的因素"><a href="#选择收集器组合要考虑的因素" class="headerlink" title="选择收集器组合要考虑的因素"></a>选择收集器组合要考虑的因素</h2><ul>
+<li><strong>Stop-the-wold</strong><br>正如前面所说，Tracing算法的收集器运行时需要暂停整个虚拟机，只有垃圾收集线程运行。选择收集器时，要考虑能否忍受长时间的暂停，如果对响应时间要求比较严格，就要选择暂停时间短的收集器。</li>
+<li><strong>吞吐率</strong><br>在这里，吞吐率表示垃圾收集器运行的时间和应用本身运行的时间的比例，当然是越小越好。</li>
+<li><strong>内存碎片</strong><br>使用CMS，要考虑是否开启碎片整理</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+        
+        <div class="post-tags">
+            <a href="/tags/Java/" rel="tag"># Java</a>
+          
+        </div>
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+              <a href="/2012/02/03/simple-method-to-test-bandwidth-between-2-machine/" rel="next" title="测量两台机器间带宽的简单方法">
+                <i class="fa fa-chevron-left"></i> 测量两台机器间带宽的简单方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+              <a href="/2012/11/20/character-encode-and-decode-in-python2/" rel="prev" title="Python2中字符编码和解码">
+                Python2中字符编码和解码 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jiang Jizhong</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
+      </span>
+    
+  </div>
+
+
+
+        </div>
+      </div>
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#垃圾收集（GC）"><span class="nav-number">1.</span> <span class="nav-text">垃圾收集（GC）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#哪些内存可以回收"><span class="nav-number">2.</span> <span class="nav-text">哪些内存可以回收</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何回收"><span class="nav-number">3.</span> <span class="nav-text">如何回收</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分代垃圾收集"><span class="nav-number">4.</span> <span class="nav-text">分代垃圾收集</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#每个代多大合适"><span class="nav-number">5.</span> <span class="nav-text">每个代多大合适</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM中的收集器"><span class="nav-number">6.</span> <span class="nav-text">JVM中的收集器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#选择收集器组合要考虑的因素"><span class="nav-number">7.</span> <span class="nav-text">选择收集器组合要考虑的因素</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jiang Jizhong</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.3.0</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
+    
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  <script src="/js/utils.js?v=7.3.0"></script>
+  <script src="/js/motion.js?v=7.3.0"></script>
+
+  
+  <script src="/js/affix.js?v=7.3.0"></script>
+  <script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.3.0"></script>
+<script src="/js/post-details.js?v=7.3.0"></script>
+
+
+
+  <script src="/js/next-boot.js?v=7.3.0"></script>
+
+  
+
+  
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

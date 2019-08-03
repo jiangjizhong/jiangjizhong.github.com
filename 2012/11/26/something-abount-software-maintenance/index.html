@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html class="theme-next gemini use-motion" lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="generator" content="Hexo 3.9.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    search: {
+      root: '/',
+      path: ''
+    },
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    }
+  };
+</script>
+
+  <meta name="description" content="定义所谓名不正则言不顺，既然要说软件的可维护性，首先就得明确什么是“维护”，什么是“可维护性”。维基百科的解释如下  Software maintenance in software engineering is the modification of a software product after delivery to correct faults, to improve performan">
+<meta name="keywords" content="软件开发 可维护性 设计理念">
+<meta property="og:type" content="article">
+<meta property="og:title" content="软件的可维护性">
+<meta property="og:url" content="http://oditszapc.com/2012/11/26/something-abount-software-maintenance/index.html">
+<meta property="og:site_name" content="姜太公的记事本">
+<meta property="og:description" content="定义所谓名不正则言不顺，既然要说软件的可维护性，首先就得明确什么是“维护”，什么是“可维护性”。维基百科的解释如下  Software maintenance in software engineering is the modification of a software product after delivery to correct faults, to improve performan">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-08-03T09:03:04.803Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="软件的可维护性">
+<meta name="twitter:description" content="定义所谓名不正则言不顺，既然要说软件的可维护性，首先就得明确什么是“维护”，什么是“可维护性”。维基百科的解释如下  Software maintenance in software engineering is the modification of a software product after delivery to correct faults, to improve performan">
+  <link rel="canonical" href="http://oditszapc.com/2012/11/26/something-abount-software-maintenance/">
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>软件的可维护性 | 姜太公的记事本</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">姜太公的记事本</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+    <ul id="menu" class="menu">
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Categories</a>
+
+  </li>
+    </ul>
+</nav>
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2012/11/26/something-abount-software-maintenance/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">软件的可维护性
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2012-11-26 00:00:00" itemprop="dateCreated datePublished" datetime="2012-11-26T00:00:00+08:00">2012-11-26</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:03:04" itemprop="dateModified" datetime="2019-08-03T17:03:04+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/development/" itemprop="url" rel="index"><span itemprop="name">软件开发</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><p>所谓名不正则言不顺，既然要说软件的可维护性，首先就得明确什么是“维护”，什么是“可维护性”。维基百科的解释如下</p>
+<blockquote>
+<p>Software maintenance in software engineering is the modification of a software product after delivery to correct faults, to improve performance or other attributes.<br>软件维护：软件工程师在软件交付之后对软件做出修改，比如修bug、提升性能等。</p>
+</blockquote>
+<p>按照这个定义，软件维护就是对现有软件进行修改。无论是修复现有错误也好，增加新功能也好，亦或者是优化某些代码，都是软件维护。但是“维护”的意思还不只如此，我现在“维护XX系统”，不需要对它做任何修改，我要做的是保证XX系统能正常运行，出现问题快速处理，这也是一种维护。不过，本文所有的“维护”都是指对要对代码进行修改的维护。</p>
+<p>那么什么是可维护性呢？个人认为可维护性就是软件是否容易维护，如果软件容易维护，它就具有高可维护性，否则维护性很差。</p>
+<h2 id="要修改，首先要理解现有的设计和代码"><a href="#要修改，首先要理解现有的设计和代码" class="headerlink" title="要修改，首先要理解现有的设计和代码"></a>要修改，首先要理解现有的设计和代码</h2><p>修改前必须要理解，否则怎么知道该怎么修改呢？理解现有代码是维护最重要的一步。 根据我不多的经验来看，影响可读性的因素主要有过度设计和糟糕的代码风格。</p>
+<h3 id="过度设计"><a href="#过度设计" class="headerlink" title="过度设计"></a>过度设计</h3><p>首先是过度设计，有些人做设计的时候总喜欢说：这个以后<strong>可能</strong>会需要，于是把一个本来简单的功能做的复杂无比，开发测试调试花费了大量的时间，他自己觉得很有成就感，但是害苦了后来人。我刚开始工作的时候，接手维护公司的论坛，这个论坛当初是几个牛人开发的，到处充斥着高端的设计思想，随处可见各种模式，还有一个非常NB也巨复杂的权限管理模块，比网络上能搜索到的那些权限管理方案厉害多了，可惜的是直到论坛下线这个权限管理模块的强大也没能完全体现出来，一直都只使用了其中一小部分功能。当时我用了好几天的时间也没能把权限模块搞清楚，更别提整个论坛了。</p>
+<p>作为程序员，希望写出强大的，让人一看就肃然起敬的代码，这个可以理解。不过理解不等于赞同，我们必须克制内心的欲望，牢记：KISS (Keep It Simple, Stupid!)。有些人可能说，我把功能设计的很强大并不是为了体现自己厉害，而是将来的确会有这样的需求。嗯，设计的时候考虑将来可能的需求是一件好事，但是不能不加区分的把所有的“可能”需求都做完，只有能明确预见的需求，才是可以提前做的，不确定的，可以考虑下，但不用做，也不应该做，谁知道明天会发生什么。</p>
+<h3 id="代码风格"><a href="#代码风格" class="headerlink" title="代码风格"></a>代码风格</h3><p>说到可维护性代码，很多人第一反应就是代码风格，比如变量命名、缩进、抽离子过程、合理的注释、一个函数只做一件事等等。代码风格对于可读性具有至关重要的作用。本文不是详细说明代码风格的，大家可以取Google下，或者读《代码大全》，很好的一本书。</p>
+<h2 id="开始修改"><a href="#开始修改" class="headerlink" title="开始修改"></a>开始修改</h2><p>理解了代码，也明确了需求，接下来要考虑怎么改动现有的代码。下面说下修改过程中会遇到的让人头疼的问题，由于例子不好找，就不举例子了。</p>
+<ul>
+<li>高度耦合的模块</li>
+<li>要修改多处重复的代码</li>
+<li>一个常见的需求，要修改多处代码（非重复，设计问题，比如加一种类型的操作要修改十几处代码）</li>
+<li>完全没有单元测试，集成测试也不容易做，甚至想把系统运行起来都不容易（常见于年久失修的大系统）。</li>
+<li>待补充……</li>
+</ul>
+<h2 id="维护性和心情"><a href="#维护性和心情" class="headerlink" title="维护性和心情"></a>维护性和心情</h2><p>根据经验，代码的可维护性严重影响修改代码时的心情。好代码（容易理解，容易修改的代码），不仅节省理解和决定如何修改所用的时间，减少可能引入的bug，还能使维护人心情愉悦，工作的效率提高。糟糕的代码刚好相反。</p>
+<p>另外，如果代码问题很多，维护人员会变得非常烦躁，甚至默念“这代码是哪个SB写的”。问题越多，心情越差，极端情况下，维护人员甚至不愿意完整的阅读代码，很容易引入新Bug。</p>
+<h2 id="破窗效应"><a href="#破窗效应" class="headerlink" title="破窗效应"></a>破窗效应</h2><p>很多人都听说过<a href="http://zh.wikipedia.org/zh-cn/%E7%A0%B4%E7%AA%97%E6%95%88%E5%BA%94" target="_blank" rel="noopener">破窗理论</a></p>
+<blockquote>
+<p> 以一幢有少许破窗的建筑为例，如果那些窗不被修理好，可能将会有破坏者破坏更多的窗户。最终他们甚至会闯入建筑内，如果发现无人居住，也许就在那里定居或者纵火。又或想像一条人行道有些许纸屑，不久后就会有更多垃圾，最终人们会视若理所当然地将垃圾顺手丢弃在地上。因此破窗理论强调着力打击罪行，以“零容忍”的态度面对罪案。</p>
+</blockquote>
+<p>破窗理论用在代码维护上也很合适，正如“维护性和心情”一段所说，对于好的代码，维护人员倾向于保持代码良好的可维护性，会更谨慎的进行修改。对于烂代码，在勉强理解的基础上毫无规划的修改，只为了加上本次的需求，导致代码变得更烂。</p>
+<p>当然，即使开始良好的代码，随着时间的演变也会逐渐变坏，可能是某个不称职的程序员对其做了修改，导致可维护性变差，也可能是最初的设计和后来的需求不匹配，导致维护性变差。可行的措施，一是要加强代码Review，阻止烂代码（个人认为，Review的标准至少是：Review人员自己能很容易理解新的修改），二是经常进行小的重构，防微杜渐。</p>
+<p>未完待续……</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+        
+        <div class="post-tags">
+            <a href="/tags/Design/" rel="tag"># Design</a>
+          
+            <a href="/tags/设计理念/" rel="tag"># 设计理念</a>
+          
+        </div>
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+              <a href="/2012/11/20/character-encode-and-decode-in-python2/" rel="next" title="Python2中字符编码和解码">
+                <i class="fa fa-chevron-left"></i> Python2中字符编码和解码
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+              <a href="/2012/12/05/mvc-design-pattern-in-web/" rel="prev" title="Web开发中的MVC设计模式">
+                Web开发中的MVC设计模式 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jiang Jizhong</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
+      </span>
+    
+  </div>
+
+
+
+        </div>
+      </div>
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#定义"><span class="nav-number">1.</span> <span class="nav-text">定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#要修改，首先要理解现有的设计和代码"><span class="nav-number">2.</span> <span class="nav-text">要修改，首先要理解现有的设计和代码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#过度设计"><span class="nav-number">2.1.</span> <span class="nav-text">过度设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#代码风格"><span class="nav-number">2.2.</span> <span class="nav-text">代码风格</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#开始修改"><span class="nav-number">3.</span> <span class="nav-text">开始修改</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#维护性和心情"><span class="nav-number">4.</span> <span class="nav-text">维护性和心情</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#破窗效应"><span class="nav-number">5.</span> <span class="nav-text">破窗效应</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jiang Jizhong</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.3.0</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
+    
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  <script src="/js/utils.js?v=7.3.0"></script>
+  <script src="/js/motion.js?v=7.3.0"></script>
+
+  
+  <script src="/js/affix.js?v=7.3.0"></script>
+  <script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.3.0"></script>
+<script src="/js/post-details.js?v=7.3.0"></script>
+
+
+
+  <script src="/js/next-boot.js?v=7.3.0"></script>
+
+  
+
+  
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

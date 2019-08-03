@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html class="theme-next gemini use-motion" lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="generator" content="Hexo 3.9.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.3.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.3.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.3.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.3.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    search: {
+      root: '/',
+      path: ''
+    },
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    }
+  };
+</script>
+
+  <meta name="description" content="原文 How to interpret complex C/C++ declarations 前言是否曾经遇到过一些复杂的、让你无法理解的C声明？ 比如 int * (* (*fp1) (int) ) [10];。 本文由浅入深的教会你理解C/C++的声明。我们先看一些经常遇到的声明，然后是稍微复杂的const和typedef，接下来攻克函数指针，最后是right-left法则。不过要强调的是：不">
+<meta property="og:type" content="article">
+<meta property="og:title" content="(译)如何理解复杂的C&#x2F;C++声明">
+<meta property="og:url" content="http://oditszapc.com/2012/12/11/How-to-interpret-complex-C-declarations/index.html">
+<meta property="og:site_name" content="姜太公的记事本">
+<meta property="og:description" content="原文 How to interpret complex C/C++ declarations 前言是否曾经遇到过一些复杂的、让你无法理解的C声明？ 比如 int * (* (*fp1) (int) ) [10];。 本文由浅入深的教会你理解C/C++的声明。我们先看一些经常遇到的声明，然后是稍微复杂的const和typedef，接下来攻克函数指针，最后是right-left法则。不过要强调的是：不">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-08-03T09:07:43.686Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="(译)如何理解复杂的C&#x2F;C++声明">
+<meta name="twitter:description" content="原文 How to interpret complex C/C++ declarations 前言是否曾经遇到过一些复杂的、让你无法理解的C声明？ 比如 int * (* (*fp1) (int) ) [10];。 本文由浅入深的教会你理解C/C++的声明。我们先看一些经常遇到的声明，然后是稍微复杂的const和typedef，接下来攻克函数指针，最后是right-left法则。不过要强调的是：不">
+  <link rel="canonical" href="http://oditszapc.com/2012/12/11/How-to-interpret-complex-C-declarations/">
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>(译)如何理解复杂的C/C++声明 | 姜太公的记事本</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">姜太公的记事本</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+    <ul id="menu" class="menu">
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories" rel="section"><i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>Categories</a>
+
+  </li>
+    </ul>
+</nav>
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2012/12/11/How-to-interpret-complex-C-declarations/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">(译)如何理解复杂的C/C++声明
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2012-12-11 00:00:00" itemprop="dateCreated datePublished" datetime="2012-12-11T00:00:00+08:00">2012-12-11</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:07:43" itemprop="dateModified" datetime="2019-08-03T17:07:43+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/翻译/" itemprop="url" rel="index"><span itemprop="name">翻译</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>原文 <a href="http://www.codeproject.com/Articles/7042/How-to-interpret-complex-C-C-declarations" target="_blank" rel="noopener">How to interpret complex C/C++ declarations</a></p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>是否曾经遇到过一些复杂的、让你无法理解的C声明？ 比如 <code>int * (* (*fp1) (int) ) [10];</code>。 本文由浅入深的教会你理解C/C++的声明。我们先看一些经常遇到的声明，然后是稍微复杂的const和typedef，接下来攻克函数指针，最后是right-left法则。不过要强调的是：不要写太复杂的代码，这里仅仅是告诉你如何<strong>理解</strong>复杂的声明。</p>
+<h2 id="基础部分"><a href="#基础部分" class="headerlink" title="基础部分"></a>基础部分</h2><p>我们先从一些简单的例子看看，看看下面这个声明</p>
+<pre><code>int n;</code></pre><p>可以理解为：n是一个int。解析是指针变量的声明，是这样的</p>
+<pre><code>int *p</code></pre><p>可以理解为：p是一个指向int的指针。</p>
+<blockquote>
+<p>声明指针的时候，最好把*和变量放在一起，而不是和类型放在一起。比如下面的代码</p>
+<p>   int* p,q</p>
+<p>看上去像是p和q都是int指针，实际上只有p是，q是int。</p>
+</blockquote>
+<p>指向指针的指针</p>
+<pre><code>char **argv</code></pre><p>原则上，指针的层次是无限，你可以声明指向指针的指针的指针的指针的指针的指针……</p>
+<pre><code>int RollNum[30][4];
+int (*p)[4]=RollNum;
+int *q[5];</code></pre><p>上面的声明中，p是一个指针，指向长度为4的int数组。q是一个长度为5的int指针数组。</p>
+<h2 id="const修饰符"><a href="#const修饰符" class="headerlink" title="const修饰符"></a>const修饰符</h2><p>const关键字可以阻止一个变量被修改。声明const的变量的时候要对其初始化，因为之后你就不能修改了。</p>
+<pre><code>const int n=5;
+int const m=10;</code></pre><p>上面的变量m和n类型相同：都是int常量。const和指针一起出现时就会比较绕，例如下面的声明</p>
+<pre><code>const int *p;
+int const *q;</code></pre><p>他们分别是什么意思？实际上，p和q都是指向int常量的指针。</p>
+<pre><code>int * const r= &amp;n; // n是int类型</code></pre><p>这里，p和q都是指向int常量的指针，意味着你不能修改<em>p的值。r是一个指针常量，意味着声明之后，类似<code>r=&amp;m</code>就是非法的，但是`</em>r`可变。</p>
+<p>上面两种声明结合起来，可以声明出指向int常量的指针常量</p>
+<pre><code>const int * const p=&amp;n // n has been declared as const int</code></pre><p>解析来的一些声明应该能消除对const的疑惑了。要注意的是，有些声明因为没有赋值，会编译不过（为了清晰，所以省略了）。</p>
+<pre><code>char ** p1;                    // 指向char的指针的指针
+const char **p2;               // 指向char常量的指针的指针
+char * const * p3;             // 指向char的指针常量的指针
+const char * const * p4;       // 指向char常量的指针常量的指针
+char ** const p5;              // 指向char指针的指针常量
+const char ** const p6;        // 指向char常量的指针的指针常量
+char * const * const p7;       // 指向char的常量指针的常量指针
+const char * const * const p8; // 指向char常量的指针常量的指针常量</code></pre><h2 id="精妙的typedef"><a href="#精妙的typedef" class="headerlink" title="精妙的typedef"></a>精妙的typedef</h2><p>typedef能让你克服*-applies-to-variable-not-type（译注：不知道怎么翻译，好在不影响内容）。如果你这样使用typedef</p>
+<pre><code>typedef char * PCHAR;
+PCHAR p,q;</code></pre><p>p和q都是char指针，如果没使用typedef，p是指针，q是char，这事违反直觉的。下面是一些使用了typedef的声明和解释</p>
+<pre><code>typedef char * a;  // a是char指针
+typedef a b();     // b是返回char指针的函数
+typedef b *c;      // c是指针，指向返回char指针的函数
+typedef c d();     // d是一个返回指向char指针的函数的指针的函数（分开说：d是一个函数，返回一个指针，这个指针指向返回char指针的函数）
+typedef d *e;      // e指向一个返回指向char指针的函数的指针的函数的指针
+e var[10];         // var是长度为10的指向一个返回指向char指针的函数的指针的函数的指针数组 </code></pre><h2 id="函数指针"><a href="#函数指针" class="headerlink" title="函数指针"></a>函数指针</h2><p>理解声明时，函数指针可能是最让人疑惑的。先来看一个简单的函数指针例子：</p>
+<pre><code>int (*p)(char);</code></pre><p>声明p是一个指针，指向参数为char，返回int的函数。指向带两个float参数并且返回一个指向char指针的指针的函数的指针:(是这样声明的：</p>
+<pre><code>char ** (*p)(float, float);</code></pre><p>如果要声明一个长度为5的指针数组，指针指向一个函数，这个函数有两个指向char的指针常量并且返回void指针，该怎么声明呢？</p>
+<pre><code>void * (*a[5])(char * const, char * const);</code></pre><h2 id="右左法则-right-left-rule-【重要】"><a href="#右左法则-right-left-rule-【重要】" class="headerlink" title="右左法则 (right-left rule) 【重要】"></a>右左法则 (right-left rule) 【重要】</h2><p>有一个能让你理解任何声明的简单规则，是这样的：从声明最里面的括号开始阅读，向右继续，然后向左。当你碰到括号，反向。当括号里的内容读完，跳出当前括号。继续上面的方法直到整个声明都读完。对右左法则的小改动：当第一次阅读声明，应该从标识符开始，而不是最里面的括号。举个例子：</p>
+<pre><code>int * (* (*fp1) (int) ) [10];</code></pre><ol>
+<li>从变量名开始 ——— fp1</li>
+<li>右边只有一个)，所以往左走，找到了 *  ————— is a pointer</li>
+<li>跳出括号，往右碰到了(int)  ———- to a function that takes an int as argument</li>
+<li>往左，遇到了* —————— and returns a pointer</li>
+<li>跳出括号，往右遇到了[10]  ———–  to an array of 10</li>
+<li>往左，遇到 *  —————–  pointers to</li>
+<li>继续往左，找到int ————- ints</li>
+</ol>
+<pre><code>int *( *( *arr[5])())();</code></pre><ol>
+<li>从变量名开始 ——————— arr</li>
+<li>向右，找到了数组 ——————— is an array of 5</li>
+<li>向左, 找到了* ———————————– pointers</li>
+<li>跳出括号，向右找到了() —— to functions</li>
+<li>向左，遇到了* —————————– that return pointers</li>
+<li>跳出，向右，找到了() ———————– to functions</li>
+<li>向左，找到了* ———————————– that return pointers</li>
+<li>继续向左，找到了int —————————– to ints.</li>
+</ol>
+<h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2><p>Nitron: <a href="http://www.codeproject.com/KB/cpp/pointerprelude.asp" target="_blank" rel="noopener">A Prelude to pointers</a><br>cdecl是一个牛B的解释变量声明的工具，还有很多其他用途. 你可以从<a href="http://www.simtel.net/product.php?url_fb_product_page=41564" target="_blank" rel="noopener">这里</a>下载Windows版。</p>
+<h2 id="License"><a href="#License" class="headerlink" title="License"></a>License</h2><p>This article, along with any associated source code and files, is licensed under The Code Project Open License (CPOL)</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+              <a href="/2012/12/08/something-about-java/" rel="next" title="吐槽Java中一些让人不爽的地方">
+                <i class="fa fa-chevron-left"></i> 吐槽Java中一些让人不爽的地方
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+              <a href="/2012/12/19/http-Keepalive-and-tcp-connections/" rel="prev" title="Http Keepalive和TCP连接数">
+                Http Keepalive和TCP连接数 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jiang Jizhong</p>
+  <div class="site-description motion-element" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags">
+          
+        
+        
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/zjZSTU" title="Github &rarr; https://github.com/zjZSTU" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>Github</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://blog.csdn.net/u012005313" title="CSDN &rarr; https://blog.csdn.net/u012005313" rel="noopener" target="_blank"><i class="fa fa-fw fa-book"></i>CSDN</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:zjzstu@gmail.com" title="Email &rarr; mailto:zjzstu@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>Email</a>
+      </span>
+    
+  </div>
+
+
+
+        </div>
+      </div>
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基础部分"><span class="nav-number">2.</span> <span class="nav-text">基础部分</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#const修饰符"><span class="nav-number">3.</span> <span class="nav-text">const修饰符</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#精妙的typedef"><span class="nav-number">4.</span> <span class="nav-text">精妙的typedef</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#函数指针"><span class="nav-number">5.</span> <span class="nav-text">函数指针</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#右左法则-right-left-rule-【重要】"><span class="nav-number">6.</span> <span class="nav-text">右左法则 (right-left rule) 【重要】</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#推荐阅读"><span class="nav-number">7.</span> <span class="nav-text">推荐阅读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#License"><span class="nav-number">8.</span> <span class="nav-text">License</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jiang Jizhong</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.3.0</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+      </div>
+
+    
+
+  </div>
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  <script src="/js/utils.js?v=7.3.0"></script>
+  <script src="/js/motion.js?v=7.3.0"></script>
+
+  
+  <script src="/js/affix.js?v=7.3.0"></script>
+  <script src="/js/schemes/pisces.js?v=7.3.0"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.3.0"></script>
+<script src="/js/post-details.js?v=7.3.0"></script>
+
+
+
+  <script src="/js/next-boot.js?v=7.3.0"></script>
+
+  
+
+  
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
