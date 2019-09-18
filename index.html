@@ -209,205 +209,6 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2019/09/20/high-performance-server/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Jiang Jizhong">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="姜太公的记事本">
-    </span>
-      <header class="post-header">
-
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2019/09/20/high-performance-server/" class="post-title-link" itemprop="url">Untitled</a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-
-              
-                
-              
-
-              <time title="Created: 2019-09-20 00:00:00" itemprop="dateCreated datePublished" datetime="2019-09-20T00:00:00+08:00">2019-09-20</time>
-            </span>
-          
-            
-
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">Edited on</span>
-                
-                <time title="Modified: 2019-09-18 16:31:42" itemprop="dateModified" datetime="2019-09-18T16:31:42+08:00">2019-09-18</time>
-              </span>
-            
-          
-
-          <br>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          
-            <h1 id="Linux高性能服务器设计"><a href="#Linux高性能服务器设计" class="headerlink" title="Linux高性能服务器设计"></a>Linux高性能服务器设计</h1><h2 id="C10K和C10M"><a href="#C10K和C10M" class="headerlink" title="C10K和C10M"></a>C10K和C10M</h2><p>计算机领域的很多技术都是需求推动的，上世纪90年代，由于互联网的飞速发展，网络服务器无法支撑快速增长的用户规模。1999年，Dan Kegel提出了著名的C10问题：一台服务器上同时处理10000个客户网络连接。10000个网络连接并不会发送请求到服务器，有些连接并不活跃，同一时刻，只有极少的部分连接发送请求。不同的服务类型，每个连接发送请求的频率也不相同，游戏服务器的连接会频繁的发送请求，而Web服务器的连接发送请求的频率就低很多。无论如何，根据经验法则，对于特定的服务类型，连接越多，同一时刻发送请求的连接也越多。</p>
-<p>时至今日，C10K问题当然早已解决，不仅如此，一台机器能支撑的连接越来越多，后来提出了C10M问题，在一台机器上支撑1000万的连接，2015年，MigratoryData在单机承载12M的连接，解决了C10M问题。</p>
-<p>本文先回顾C10问题的解决方案，再探讨如何构建支撑C10M的应用程序，聊聊其中涉及的各种技术。</p>
-<h2 id="C10K问题的解决"><a href="#C10K问题的解决" class="headerlink" title="C10K问题的解决"></a>C10K问题的解决</h2><p>时间退回到1999年，当时要实现一个网络服务器，大概有这样几种模式</p>
-<h3 id="简单进程-线程模型"><a href="#简单进程-线程模型" class="headerlink" title="简单进程/线程模型"></a>简单进程/线程模型</h3><p>这是一种非常简单的模式，服务器启动后监听端口，阻塞在accept上，当新网络连接建立后，accept返回新连接，服务器启动一个新的进程/线程专门负责这个连接。从性能和伸缩性来说，这种模式是非常糟糕的，原因在于</p>
-<ul>
-<li>进程/线程创建和销毁的时间，操作系统创建一个进程/线程显然需要时间，在一个繁忙的服务器上，如果每秒都有大量的连接建立和断开，采用每个进程/线程处理一个客户连接的模式，每个新连接都要创建创建一个进程/线程，当连接断开时，销毁对应的线程/进程。创建和销毁进程/线程的操作消耗了大量的CPU资源。使用进程池和线程池可以缓解这个问题。</li>
-<li>内存占用。主要包含两方面，一个是内核数据结构所占用的内存空间，另外一个是Stack所占用的内存。有些应用的调用栈很深，比如Java应用，经常能看到几十上百层的调用栈。</li>
-<li>上下文切换的开销。上下文切换时，操作系统的调度器中断当前线程，选择另外一个可运行的线程在CPU上继续运行。调度器需要保存当前线程的现场信息，也就是CPU上各个寄存器的值，然后选择一个可运行的线程，再将线程的状态恢复到寄存器中。保存和恢复现场所需要的时间和CPU型号有关，选择一个可运行的线程则完全是软件操作，Linux 2.6才开始使用常量时间的调度算法。 以上是上下文切换的直接开销。除此之外还有一些间接开销，上下文切换导致相关的缓存失效，比如L1/L2 Cache，TLB等，这些也会影响正确的性能。不用的影响程序间接开销很难衡量。</li>
-</ul>
-<p>有意思的是，这种模式虽然性能极差，但却依然是我们今天最常见到的模式。现在互联网上大部分都是Web程序，而Web程序中绝大部分都是都是以这种模式运行的。</p>
-<h3 id="select-poll"><a href="#select-poll" class="headerlink" title="select/poll"></a>select/poll</h3><p>另外一种方式是使用select/poll，在一个线程内处理多个客户连接。select和poll能够监控多个socket文件描述符，当某个文件描述符就绪，select/soll从阻塞状态返回，通知应用程序可以处理用户连接了。使用这种方式，我们只需要一个线程就可以处理大量的连接，避免了多进程/线程的开销。之所以把select和poll放在一起说，原因在于两者非常相似，性能上基本没有区别，唯一值得一提的区别在于poll突破了select 1024个文件描述符的限制，然而当文件描述符数量增加时，poll性能急剧下降，因此所谓突破1024个文件描述符实际上毫无意义。select/poll并不完美，依然存在很多问题：</p>
-<ol>
-<li>每次调用select/poll，都要把文件描述符的集合从用户地址空间复制到内核地址空间</li>
-<li>select/poll返回后，调用方必须遍历所有的文件描述符，逐一判断文件描述符是否可读/可写。</li>
-</ol>
-<p>这两个限制让select/poll完全失去了伸缩性。连接数越多，文件描述符就越多，文件描述符越多，每次调用select/poll所带来的用户空间到内核空间的复制开销越大。最严重的是当报文达到，select/poll返回之后，必须遍历所有的文件描述符。假设现在有1万个连接，其中只一个连接发送了请求，但是select/poll就要把1万个连接全部检查一遍。</p>
-<p>epoll</p>
-<p>FreeBSD 4.1引入了kqueue，此时是2000年7月，而在Linux上，还要等待2年后的2002年才开始引入kqueue的类似实现: epoll。epoll最初于 2.5.44进入Linux kernel mainline，此时已经是2002年，距离C10K问题提出已经过了3年。</p>
-<p>epoll是如何提供一个高性能可伸缩的IO多路复用机制呢？首先，epoll引入了epoll instance这个概念，epoll instance在内核中关联了一组要监听的文件描述符配置：interest list，这样的好处在于，每次要增加一个要监听的文件描述符，不需要把所有的文件描述符都配置一次，然后从用户地址空间复制到内核地址空间，只需要把单个文件描述符复制到内核地址空间，复制开销从O(n)降到了O(1)。</p>
-<p>注册完文件描述符后，调用epoll_wait开始等待文件描述符事件。epoll_wait可以只返回已经ready的文件描述符，因此，在epoll_wait返回之后，程序只需要处理真正需要处理的文件描述符，而不用把所有的文件描述符全部遍历一遍。假设在全部N个文件描述符中，只有一个文件描述符Ready，select/poll要执行N次循环，epoll只需要一次。</p>
-<p>epoll出现之后，Linux上才真正有了一个可伸缩的IO多路复用机制。基于epoll，能够支撑的网络连接数取决于硬件资源的配置，而不再受限于内核的实现机制。CPU越强，内存越大，能支撑的连接数越多。</p>
-<p>编程模型</p>
-<p>Reactor和proactor</p>
-<p>不同的操作系统上提供了不同的IO多路复用实现，Linux上有epoll，FreeBSD有kqueue，Windows有IOCP。对于需要跨平台的程序，必然需要一个抽象层，提供一个统一的IO多路复用接口，屏蔽各个系统接口的差异性。</p>
-<p>Reactor是实现这个目标的一次尝试，最早出现在Douglas C. Schmidt的论文”The Reactor An Object-Oriented Wrapper for Event-Driven Port Monitoring and Service Demultiplexing”中。从论文的名字可以看出，Reactor是poll这种编程模式的一个面向对象包装。考虑到论文的时间，当时正是面向对象概念正火热的时候，什么东西都要蹭蹭面向对象的热度。论文中，DC Schmidt描述了为什么要做这样的一个Wrapper，给出了下面几个原因</p>
-<ol>
-<li>操作系统提供的接口太复杂，容易出错。select和poll都是通用接口，因为通用，增加了学习和正确使用的复杂度。</li>
-<li>接口抽象层次太低，涉及太多底层的细节。</li>
-<li>不能跨平台移植。</li>
-<li>难以扩展。</li>
-</ol>
-<p>实际上除了第三条跨平台，其他几个理由实在难以站得住脚。select/poll这类接口复杂吗，使用起来容易出错吗，写出来的程序难以扩展吗？不过不这么说怎么体现Reactor的价值呢。正如论文名称所说的，Reactor本质是对操作系统IO多路复用机制的一个面向对象包装，为了证明Reactor的价值，DC Schmidt还用C++面向对象的特性实现了一个编程框架：ACE，实际上使用ACE比直接使用poll或者epoll复杂多了。</p>
-<p>后来DC Schmidt写了一本书《面向模式的软件架构》，再次提到了Reactor，并重新命名为Reactor Pattern，现在网络上能找到的Reactor资料，基本上都是基于Reactor Pattern，而不是早期的面向Object-Orientend Wrapper。</p>
-<p>《面向模式的软件》架构中还提到了另外一种叫做Proactor的模式，和Reactor非常类似，Reactor针对同步IO，Proactor则针对异步IO。</p>
-<p>Callback，Future和纤程</p>
-<p>Reactor看上去并不复杂，但是想编写一个完整的应用程序时候就会发现其实没那么简单。为了避免Reactor主逻辑阻塞，所有可能会导致阻塞的操作必须注册到epoll上，带来的问题就是处理逻辑的支离破碎，大量使用callback，产生的代码复杂难懂。如果应用程序中还有非网络IO的阻塞操作，问题更严重，比如在程序中读写文件。Linux中文件系统操作都是阻塞的，虽然也有Linux AIO，但是一直不够成熟，难堪大用。很多软件采用线程池来解决这个问题，不能通过epoll解决的阻塞操作，扔到一个线程池执行。这又产生了多线程内存开销和上下文切换的问题。</p>
-<p>Future机制是对Callback的简单优化，本质上还是Callback，但是提供了一致的接口，代码相对来说简单一些，不过在实际使用中还是比较复杂的。Seastar是一个非常彻底的future风格的框架，从它的代码可以看到这种编程风格真的非常复杂，阻塞式编程中一个函数几行代码就能搞定的事情，在Seastar里需要上百行代码，几十个labmda (在Seastar里叫做continuation)。</p>
-<p>纤程是一种用户态调度的线程，比如Go语言中的goroutine，有些人可能会把这种机制成为coroutine，不过我认为coroutine和纤程还是有很大区别的，coroutine是泛化的子进程，具有多个进入和退出点，用来一些一些相互协作的程序，典型的例子就是Python中的generator。纤程则是一种运行和调度机制。</p>
-<p>纤程真正做到了高性能和易用，在Go语言中，使用goroutine实现的高性能服务器是一件轻松愉快的事情，完全不用考虑线程数、epoll、回调之类的复杂操作，和编写阻塞式程序完全一样。</p>
-<p>网络优化</p>
-<p>Kernel bypass</p>
-<p>络子系统是Linux内核中一个非常庞大的组件，提供了各种通用的网络能力。通用通常意味在在某些场景下并不是最佳选择。实际上业界的共识是Linux内核网络不支持超大并发的网络能力。根据我过去的经验，Linux最大只能处理1MPPS，而现在的10Gbps网卡通常可以处理10MPPS。随着更高性能的25Gbps，40Gbps网卡出现，Linux内核网络能力越发捉襟见肘。为什么Linux不能充分发挥网卡的处理能力？原因在于：</p>
-<ul>
-<li>大多数网卡收发使用中断方式，每次中断处理时间大约100us，另外要考虑cache miss带来的开销。部分网卡使用NAPI，轮询+中断结合的方式处理报文，当报文放进队列之后，依然要触发软中断。</li>
-<li>数据从内核地址空间复制到用户地址空间。</li>
-<li>收发包都有系统调用。</li>
-<li>网卡到应用进程的链路太长，包含了很多不必要的操作。</li>
-</ul>
-<p>Linux高性能网络一个方向就是绕过内核的网络栈(kernel bypass)，业界有不少尝试</p>
-<ul>
-<li><p>PF_RING 高效的数据包捕获技术，比libpcap性能更好。需要自己安装内核模块，启用ZC Driver，设置transparent_mode=2的情况下，报文直接投递到客户端程序，绕过内核网络栈。</p>
-</li>
-<li><p>Snabbswitch 一个Lua写的网络框架。完全接管网卡，使用UIO(Userspace IO)技术在用户态实现了网卡驱动。</p>
-</li>
-<li><p>Intel DPDK，直接在用户态处理报文。非常成熟，性能强大，限制是只能用在Intel的网卡上。根据DPDK的数据，3GHz的CPU Core上，平均每个报文的处理时间只要60ns（一次内存的访问时间）。</p>
-</li>
-<li><p>Netmap 一个高性能收发原始数据包的框架，包含了内核模块以及用户态库函数，需要网卡驱动程序配合，因此目前只支持特定的几种网卡类型，用户也可以自己修改网卡驱动。</p>
-</li>
-<li><p>XDP，使用Linux eBPF机制，将报文处理逻辑下放到网卡驱动程序中。一般用于报文过滤、转发的场景。</p>
-</li>
-</ul>
-<p>kernel bypass技术最大的问题在于不支持POSIX接口，用户没办法不修改代码直接移植到一种kernel bypass技术上。对于大多数程序来说，还要要运行在标准的内核网络栈上，通过调整内核参数提升网络性能。</p>
-<p>网卡多队列</p>
-<p>报文到达网卡之后，在一个CPU上触发中断，CPU执行网卡驱动程序从网卡硬件缓冲区读取报文内容，解析后放到CPU接收队列上。这里所有的操作都在一个特定的CPU上完成，高性能场景下，单个CPU处理不了所有的报文。对于支持多队列的网卡，报文可以分散到多个队列上，每个队列对应一个CPU处理，解决了单个CPU处理瓶颈。</p>
-<p>为了充分发挥多队列网卡的价值，我们还得做一些额外的设置：把每个队列的中断号绑定到特定CPU上。这样做的目的，一方面确保网卡中断的负载能分配到不同的CPU上，另外一方面可以将负责网卡中断的CPU和负责应用程序的CPU区分开，避免相互干扰。</p>
-<p>在Linux中，/sys/class/net/${interface}/device/msi_irqs下保存了每个队列的中断号，有了中断号之后，我们就可以设置中断和CPU的对应关系了。网上有很多文章可以参考。</p>
-<p>网卡offloading</p>
-<p>回忆下TCP数据的发送过程：应用程序将数据写到套接字缓冲区，内核将缓冲区数据切分成不大于MSS的片段，附加上TCP Header和IP Header，计算Checksum，然后将数据推到网卡发送队列。这个过程中需要CPU全程参与， 随着网卡的速度越来越快，CPU逐渐成为瓶颈，CPU处理数据的速度已经赶不上网卡发送数据的速度。经验法则，发送或者接收1bit/s TCP数据，需要1Hz的CPU，1Gbps需要1GHz的CPU，10Gbps需要10GHz的CPU，已经远超单核CPU的能力，即使能完全使用多核，假设单个CPU Core是2.5GHz，依然需要4个CPU Core。</p>
-<p>为了优化性能，现代网卡都在硬件层面集成了TCP分段、添加IP Header、计算Checksum等功能，这些操作不再需要CPU参与。这个功能叫做tcp segment offloading，简称tso。使用ethtool -k 可以检查网卡是否开启了tso</p>
-<p>除了tso，还有其他几种offloading，比如支持udp分片的ufo，不依赖驱动的gso，优化接收链路的lro</p>
-<p>充分利用多核</p>
-<p>随着摩尔定律失效，CPU已经从追求高主频转向追求更多的核数，现在的服务器大都是96核甚至更高。构建一个支撑C10M的应用程序，必须充分利用所有的CPU，最重要的是程序要具备水平伸缩的能力：随着CPU数量的增多程序能够支撑更多的连接。</p>
-<p>很多人都有一个误解，认为程序里使用了多线程就能利用多核，考虑下CPython程序，你可以创建多个线程，但是由于GIL的存在，程序最多只能使用单个CPU。实际上多线程和并行本身就是不同的概念，多线程表示程序内部多个任务并发执行，每个线程内的任务可以完全不一样，线程数和CPU核数没有直接关系，单核机器上可以跑几百个线程。并行则是为了充分利用计算资源，将一个大的任务拆解成小规模的任务，分配到每个CPU上运行。并行可以 通过多线程实现，系统上有几个CPU就启动几个线程，每个线程完成一部分任务。</p>
-<p>并行编程的难点在于如何正确处理共享资源。并发访问共享资源，最简单的方式就加锁，然而使用锁又带来性能问题，获取锁和释放锁本身有性能开销，锁保护的临界区代码不能只能顺序执行，就像CPython的GIL，没能充分利用CPU。</p>
-<p>Thread Local和Per-CPU变量</p>
-<p>这两种方式都是创建变量的多个副本，使用变量时只访问本地副本，因此不需要任何同步。现代编程语言基本上都支持Thread Local，使用起来也很简单，C/C++里也可以使用__thread标记声明ThreadLocal变量。</p>
-<p>Per-CPU则依赖操作系统，当我们提到Per-CPU的时候，通常是指Linux的Per-CPU机制。Linux内核代码中大量使用Per-CPU变量，但应用代码中并不常见，如果应用程序中工作线程数等于CPU数量，且每个线程Pin到一个CPU上，此时才可以使用。</p>
-<p>原子变量</p>
-<p>如果共享资源是int之类的简单类型，访问模式也比较简单，此时可以使用原子变量。相比使用锁，原子变量性能更好。在竞争不激烈的情况下，原子变量的操作性能基本上和加锁的性能一致，但是在并发比较激烈的时候，等待锁的线程要进入等待队列等待重新调度，这里的挂起和重新调度过程需要上下文切换，浪费了更多的时间。</p>
-<p>大部分编程语言都提供了基本变量对应的原子类型，一般提供set, get, compareAndSet等操作。</p>
-<p>lock-free</p>
-<p>lock-free这个概念来自<java concurrency in practice></java></p>
-<blockquote>
-<p> An algorithm is called non‐blocking if failure or suspension of any thread cannot cause failure or suspension of another thread; an algorithm is called lock‐free if, at each step, some thread can make progress.</p>
-</blockquote>
-<p>non-blocking算法任何线程失败或者挂起，不会导致其他线程失败或者挂起，lock-free则进一步保证线程间无依赖。这个表述比较抽象，具体来说，non-blocking要求不存在互斥，存在互斥的情况下，线程必须先获取锁再进入临界区，如果当前持有锁的线程被挂起，等待锁的线程必然需要一直等待下去。对于活锁或者饥饿的场景，线程失败或者挂起的时候，其他线程完全不仅能正常运行，说不定还解决了活锁和饥饿的问题，因此活锁和饥饿符合non-blocking，但是不符合lock-free。</p>
-<p>实现一个lock-free数据结构并不容易，好在已经有了几种常见数据结构的的lock-free实现：buffer, list, stack, queue, map, deque，我们直接拿来使用就行了。</p>
-<p>优化对锁的使用</p>
-<p>有时候没有条件使用lock-free，还是得用锁，对于这种情况，还是有一些优化手段的。首先使用尽量减少临界区的大小，使用细粒度的锁，锁粒度越细，并行执行的效果越好。其次选择适合的锁，比如考虑选择读写锁。</p>
-<p>CPU affinity</p>
-<p>使用CPU affinity机制合理规划线程和CPU的绑定关系。前面提到使用CPU affinity机制，将多队列网卡的中断处理分散到多个CPU上。不仅是中断处理，线程也可以绑定，绑定之后，线程只会运行在绑定的CPU上。为什么要将线程绑定到CPU上呢？绑定CPU有这样几个好处</p>
-<ul>
-<li>为线程保留CPU，确保线程有足够的资源运行</li>
-<li>提高CPU cache的命中率，某些对cache敏感的线程必须绑定到CPU上才行。</li>
-<li>更精细的资源控制。可以预先需要静态划分各个工作线程的资源，例如为每个请求处理线程分配一个CPU，其他后台线程共享一个CPU，工作线程和中断处理程序工作在不同的CPU上。</li>
-<li>NUMA架构中，每个CPU有自己的内存控制器和内存插槽，CPU访问本地内存别访问远程内存快3倍左右。使用affinity将线程绑定在CPU上，相关的数据也分配到CPU对应的本地内存上。</li>
-</ul>
-<p>Linux上设置CPU affinity很简单，可以使用命令行工具taskset，也可以在程序内直接调用API <code>sched_getaffinity</code>和<code>sched_setaffinity</code></p>
-<p>其他优化技术</p>
-<p>内存优化</p>
-<p>Linux中，程序内使用的内存地址是虚拟地址，并不是内存的物理地址。为了简化虚拟地址到物理地址的映射，虚拟地址到物理地址的映射最小单位是“Page”，默认情况下，每个页大小为4KB。CPU指令中出现的虚拟地址，为了读取内存中的数据，指令执行前要把虚拟地址转换成内存物理地址。Linux为每个进程维护了一张虚拟地址到物理地址的映射表，CPU先查表找到虚拟地址对应的物理地址，再执行指令。由于映射表维护在内存中，CPU查表就要访问内存。相对CPU的速度来说，内存其实是相当慢的，一般来说，CPU L1 Cache的访问速度在1ns左右，而一次内存访问需要60-100ns，比CPU执行一条指令要慢得多。如果每个指令都要访问内存，比如严重拖慢CPU速度，为了解决这个问题，CPU引入了TLB(translation lookaside buffer)，一个高性能缓存，缓存映射表中一部分条目。转换地址时，先从TLB查找，没找到再读内存。</p>
-<p>显然，最理想的情况是映射表能够完全缓存到TLB中，地址转换完全不需要访问内存。为了减少映射表大小，我们可以使用“HugePages”：大于4KB的内存页。默认HugePages是2MB，最大可以到1GB。</p>
-<p>Zero Copy</p>
-<p>对于一个Web服务器来说，响应一个静态文件请求需要先将文件从磁盘读取到内存中，再发送到客户端。如果自信分析这个过程，会发现数据首先从磁盘读取到内核的页缓冲区，再从页缓冲区复制到Web服务器缓冲区，接着从Web服务器缓冲区发送到TCP发送缓冲区，最后经网卡发送出去。这个过程中，数据先从内核复制到进程内，再从进程内回到内核，这两次复制完全是多余的。Zero Copy就是类似情况的优化方案，数据直接在内核中完成处理，不需要额外的复制。</p>
-<p>Linux中提供了几种ZeroCopy相关的技术，包括<code>sendfile</code>,<code>splice</code>,<code>copy_file_range</code>,Web服务器中经常使用<code>sendfile</code>优化性能。</p>
-
-          
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-    
-      
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2013/07/02/java-unit-test/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1554,6 +1355,145 @@ sys     0m0.699s</code></pre><p>带宽是 30496256 / 1.080 bps </p>
   </article>
 
     
+      
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://oditszapc.com/2012/12/19/http-Keepalive-and-tcp-connections/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jiang Jizhong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="姜太公的记事本">
+    </span>
+      <header class="post-header">
+
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                
+                <a href="/2012/12/19/http-Keepalive-and-tcp-connections/" class="post-title-link" itemprop="url">Http Keepalive和TCP连接数</a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2012-12-19 00:00:00" itemprop="dateCreated datePublished" datetime="2012-12-19T00:00:00+08:00">2012-12-19</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-08-03 17:04:12" itemprop="dateModified" datetime="2019-08-03T17:04:12+08:00">2019-08-03</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Network/" itemprop="url" rel="index"><span itemprop="name">Network</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          <br>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+            <p>Http Keepalive和TCP连接数是两个完全不同的东西，之所以要放在一起说，因为是前段时间遇到了<code>TIME_WAIT</code>状态的连接数过高，运维人员说是Apache的Keepalive时间太短，当时觉得不合理，仔细思考了下，果然不合理。</p>
+<h2 id="Keepalive"><a href="#Keepalive" class="headerlink" title="Keepalive"></a>Keepalive</h2><p>首先简单的介绍下Keepalive，权当是凑字数。Http作为应用层协议，绝大多数时候，它都使用TCP作为传输层协议。众所周知，TCP协议需要三次握手建立连接，需要1.5个RTT，如果网络比较差，加上丢包和重传，需要更多的时间。通常请求一张html页面，其中包含了很多资源，有css、js、图片等，每个文件都不大，建立TCP连接的时间甚至比传输时间还长，太不划算。于是就有了Keepalive：既然每次建立连接太浪费时间，那么就用一个持久连接，每次都用这个连接请求新资源。事实证明，这个策略非常正确，页面加载明显变快，用户体验一下子就上来了.</p>
+<p>不过Keepalive也不是完美无缺的。浏览器非常自私，不到迫不得已，它从来不主动关闭连接，毕竟关闭连接下次有请求就要重新打开，对用户来说就感觉这个浏览器慢，在浏览器竞争如此激烈的今天，哪个浏览器会干这种事呢。所以，不要指望浏览器会主动关闭连接（当然，浏览器如果觉得自己的同时打开的连接太多了，它也会关掉一些，开这么多连接对自己也是个负担，所以要关掉。说到底，浏览器是自私的）。服务器一般支持keepalive timeout之类的，如果客户端一段时间内没有发送新请求，服务器就把对应的TCP连接关掉。</p>
+<p><em>从上面的描述也可以看出来，如果不存在同一个连接请求多个资源的场景，服务器应该关闭Keepalive</em></p>
+<h2 id="关闭连接和TCP状态"><a href="#关闭连接和TCP状态" class="headerlink" title="关闭连接和TCP状态"></a>关闭连接和TCP状态</h2><p>大部分都知道TCP建立连接需要三步（三次握手），关闭连接需要四步。关闭连接的时候，发起关闭的一方为“主动关闭”，另一方为被动关闭。过程和状态是这样的：</p>
+<pre><code>A                             B                                                                                                           
+-------------FIN--------------&gt;                                                                                                           
+FIN_WAIT1                                                                                                                                 
+&lt;------------ACK---------------                                                                                                           
+FIN_WAIT2            CLOSE_WAIT
+&lt;------------FIN---------------
+TIME_WAIT              LAST_ACK
+------------ACK---------------&gt;
+TIME_WAIT                CLOSED
+.
+.
+.
+2MSL (2 * Max Segment Lifetime)
+.
+.
+.
+CLOSED</code></pre><p>上面的图里，A是主动关闭，进入<code>TIME_WAIT</code>状态，B是被动关闭，进入<code>CLOSE_WAIT</code>状态。根据第一段的描述，服务器是主动关闭的一方，进入<code>TIME_WAIT</code>状态，客户端是被动关闭的一方，进入<code>CLOSE_WAIT</code>状态。</p>
+<p><em>主动关闭为什么发送了最后一个ACK还要等待2MSL才真正关闭连接呢？假设最后的ACK包丢了，没传到B，B会怎么样？根据TCP协议，B会一直等待并且重传上一个FIN。A等2MSL是为了尽量保证最后的ACK已经送达B。</em></p>
+<h2 id="Keepalive-Timeout和连接数"><a href="#Keepalive-Timeout和连接数" class="headerlink" title="Keepalive Timeout和连接数"></a>Keepalive Timeout和连接数</h2><p>那么，Keepalive time会如何影响连接数呢？不妨建立一个简单的模型：服务器匀速接收到连接，每秒10个，每个连接只发送一次请求，5s时间后关闭。2MSL=3 (<code>cat /proc/sys/net/ipv4/tcp_fin_timeout</code>可以看到机器上的值)</p>
+<pre><code>时间            0   1   2   3   4   5   6   7   8   9   10  11
+ESTABLISHED     0   10  20  30  40  50  50  50  50  50  50  50
+TIME_WAIT       0   0   0   0   0   0   10  20  30  30  30  30</code></pre><p>在0-1秒，建立了10个连接，没有连接关闭，1-2秒，又建立了10个连接，没有连接关闭……在第6秒，0-1秒建立的连接超时关闭了，出现10个<code>TIME_WAIT</code>状态的连接，同时有10个新连接建立，所以ESTABLISHED状态的连接还是50个，<code>TIME_WAIT</code>状态的连接10个……到第9秒，10个<code>TIME_WAIT</code>状态的连接彻底关闭，同时产生10个新的<code>TIME_WAIT</code>，<code>TIME_WAIT</code>状态的连接还是30个。在这个模型中：keepalive只影响了ESTABLISHED状态连接，不影响<code>TIME_WAIT</code>状态的连接，2MSL只影向<code>TIME_WAIT</code>状态的连接，不影响ESTABLISHED状态的连接。</p>
+<p>还是上面的模型，延长keepalive时间为6s，连接数变化如下。</p>
+<pre><code>时间            0   1   2   3   4   5   6   7   8   9   10  11
+ESTABLISHED     0   10  20  30  40  50  60  60  60  60  60  60
+TIME_WAIT       0   0   0   0   0   0   0   10  10  10  10  10</code></pre><p>虽然这是一个简化的模型，但是结论是没问题的，有兴趣的同学可以考虑变化的连接速度和更精细的时间。这里只说最终结论：<strong>keepalive只影响ESTABLISHED状态的最大数量，同样条件下，keepalive越大，ESTABLISHED最大值就越大。同样条件下，2MSL越大，TIME_WAIT最大值就越大</strong></p>
+
+          
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+    
   </section>
 
   
@@ -1591,7 +1531,7 @@ sys     0m0.699s</code></pre><p>带宽是 30496256 / 1.080 bps </p>
         
           <a href="/archives">
         
-          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-count">18</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
